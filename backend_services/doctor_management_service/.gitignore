@@ -1,0 +1,6 @@
+node modules/
+dist/
+.env
+*.local
+*.log
+package-lock.json 
