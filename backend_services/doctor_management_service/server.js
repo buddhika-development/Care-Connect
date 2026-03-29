@@ -1,13 +1,14 @@
-import express, { json } from "express";
+import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import extractUser from "./src/middleware/extractUser.middleware.js";
+import doctorProfileRoutes from "./src/routes/doctorProfile.routes.js";
 
 dotenv.config();
+
 const app = express();
 
 app.use(cors());
-app.use(json());
+app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
@@ -20,12 +21,14 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Protected test route - must come through gateway
-app.get("/api/doctors/profile", extractUser, (req, res) => {
-  res.json({
-    success: true,
-    message: "Gateway header auth working correctly",
-    userFromGateway: req.user,
+// Doctor profile routes
+app.use("/api/doctors", doctorProfileRoutes);
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found`,
   });
 });
 
