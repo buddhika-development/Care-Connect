@@ -11,13 +11,15 @@ const createProxy = (target, pathRewrite = null) => {
     changeOrigin: true,
     on: {
       proxyReq: (proxyReq, req, res) => {
-        fixRequestBody(proxyReq, req, res);
+        //fixRequestBody(proxyReq, req, res);
 
         if (req.user) {
           proxyReq.setHeader("X-User-Id", req.user.userId);
           proxyReq.setHeader("X-User-Role", req.user.role);
           proxyReq.setHeader("X-Gateway-Secret", process.env.GATEWAY_SECRET);
         }
+
+        fixRequestBody(proxyReq, req, res);
       },
       error: (err, req, res) => {
         console.error("Proxy error:", err.message);
