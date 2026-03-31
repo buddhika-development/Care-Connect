@@ -34,3 +34,15 @@ export async function updatePatientProfile(profileId, updatedData) {
 
   return { updatedProfile: data, updateError: error };
 }
+
+export async function getPatientProfileByUserId(userId) {
+  const { data, error } = await supabase
+    .from("patient_profile")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  console.log("getPatientProfileByUserId - data:", data, "error:", error);
+
+  return { patient: data, patientError: error };
+}
