@@ -1,35 +1,17 @@
-import express, { json } from "express";
-import cors from "cors";
 import dotenv from "dotenv";
-import extractUser from "./src/middleware/extractUser.middleware.js";
+import app from "./src/app.js";
 
 dotenv.config();
-const app = express();
-
-app.use(cors());
-app.use(json());
-
 const PORT = process.env.PORT || 3001;
 
-// Public route - just to check service is alive
-app.get("/health", (req, res) => {
-  res.json({
-    success: true,
-    service: "patient-management-service",
-    message: "Service is running",
-  });
+const server = app.listen(PORT, () => {
+  console.log(`API Gateway running on port ${PORT}`);
 });
 
-// Protected test route - must come through gateway
-console.log("Setting up protected test route for patient profile...");
-app.get("/api/patients/profile", extractUser, (req, res) => {
-  res.json({
-    success: true,
-    message: "Gateway header auth working correctly",
-    userFromGateway: req.user,
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received. Closing HTTP server...");
+  server.close(() => {
+    console.log("Server closed.");
+    process.exit(0);
   });
-});
-
-app.listen(PORT, () => {
-  console.log(`Patient management service running on port ${PORT}`);
 });

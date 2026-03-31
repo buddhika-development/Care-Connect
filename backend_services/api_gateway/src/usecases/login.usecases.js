@@ -30,8 +30,12 @@ export async function loginUser(email, password) {
       throw new NotFoundError("User");
     }
 
-    if (data.is_active === false || data.is_verified === false) {
-      throw new InvalidInputError("Account is not active or verified!");
+    if (data.is_active === false) {
+      throw new InvalidInputError("Account is not active!");
+    }
+
+    if (data.role === "doctor" && data.is_verified === false) {
+      throw new InvalidInputError("Doctor account is not verified yet!");
     }
 
     const isPasswordValid = await verifyPassword(password, data.password_hash);

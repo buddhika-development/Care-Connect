@@ -14,9 +14,10 @@ const createProxy = (target, pathRewrite = null) => {
         fixRequestBody(proxyReq, req, res);
 
         if (req.user) {
-          proxyReq.setHeader("X-User-Id", req.user.userId);
-          proxyReq.setHeader("X-User-Role", req.user.role);
-          proxyReq.setHeader("X-Gateway-Secret", process.env.GATEWAY_SECRET);
+          proxyReq.setHeader("x-user-id", req.user.userId);
+          proxyReq.setHeader("x-user-email", req.user.email);
+          proxyReq.setHeader("x-user-role", req.user.role);
+          proxyReq.setHeader("x-gateway-secret", process.env.GATEWAY_SECRET);
         }
       },
       error: (err, req, res) => {

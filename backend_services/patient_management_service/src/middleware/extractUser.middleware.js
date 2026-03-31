@@ -16,8 +16,9 @@ const extractUser = (req, res, next) => {
   }
 
   const userId = req.headers["x-user-id"];
+  const email = req.headers["x-user-email"];
   const role = req.headers["x-user-role"];
-  if (!userId || !role) {
+  if (!userId || !role || !email) {
     return res.status(401).json({
       success: false,
       message: "Missing user identity headers from gateway.",
@@ -26,6 +27,7 @@ const extractUser = (req, res, next) => {
 
   req.user = {
     userId,
+    email,
     role,
   };
 

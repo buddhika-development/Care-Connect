@@ -22,6 +22,7 @@ export const loginController = async (req, res, next) => {
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.role,
+          complete_profile: user.complete_profile,
         },
       });
     }
