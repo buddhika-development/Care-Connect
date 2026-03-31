@@ -22,3 +22,15 @@ export async function saveRefreshToken(userId, refreshToken, expiredAt) {
 
   return { savedToken: data, savedTokenError: error };
 }
+
+export async function findRefreshToken(userId) {
+  const { data, error } = await supabase
+    .from("refresh_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("is_revoked", false)
+    .gt("expires_at", new Date().toISOString())
+    .single();
+
+  return { token: data, tokenError: error };
+}

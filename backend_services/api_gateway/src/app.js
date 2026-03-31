@@ -6,8 +6,8 @@ import cookieParser from "cookie-parser";
 import { generalLimiter } from "./middleware/rateLimiter.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
 import registerProxyRoutes from "./routes/proxy.routes.js";
-import { NotFoundError } from "./utils/errors.utils.js";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
+import internalRoutes from "./routes/internal.routes.js";
 
 dotenv.config();
 const app = express();
@@ -46,6 +46,8 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+
+app.use("/api/internal", internalRoutes);
 
 console.log("Setting up proxy routes...");
 registerProxyRoutes(app);

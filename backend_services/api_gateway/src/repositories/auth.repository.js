@@ -46,3 +46,13 @@ export async function saveUser(
   console.log("User save result:", { data, error });
   return { data, error };
 }
+
+export async function updateUserProfile(userId, profileData) {
+  const { data, error } = await supabase
+    .from("users")
+    .update(profileData)
+    .eq("id", userId)
+    .select();
+
+  return { data, error };
+}
