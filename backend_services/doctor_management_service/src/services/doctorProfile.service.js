@@ -4,11 +4,13 @@ import {
   updateDoctorProfileByUserId,
 } from "../repositories/doctorProfile.repository.js";
 import {
+  AppError,
   DatabaseError,
   ForbiddenError,
   NotFoundError,
   ValidationError,
 } from "../utils/errors.utils.js";
+import { CompleteProfileService } from "./completeProfile.service.js";
 
 // Create doctor profile by logged-in doctor
 export const createMyDoctorProfileService = async (user, body) => {
@@ -62,6 +64,22 @@ export const createMyDoctorProfileService = async (user, body) => {
 
   if (error) {
     throw new DatabaseError(error.message);
+  }
+
+  const serviceResponse = await CompleteProfileService(full_name, user.userId);
+  console.log(
+    "CompleteProfileService response in createMyDoctorProfileService:",
+    serviceResponse,
+  );
+
+  if (serviceResponse.data.userId !== user.userId) {
+    throw new ValidationError(
+      "Profile completion failed for the created doctor profile",
+    );
+  }
+
+  if (!serviceResponse.success) {
+    throw new AppError("Failed to complete profile after creation", 500);
   }
 
   return data;
