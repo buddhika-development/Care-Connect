@@ -9,12 +9,12 @@ import {
 const router = express.Router();
 
 // Create doctor profile by logged-in doctor
-router.post("/profile", extractUser, createMyDoctorProfileController);
+router.post("/", extractUser, createMyDoctorProfileController);
 
 // View my doctor profile by logged-in doctor
-router.get("/profile", extractUser, getMyDoctorProfileController);
+router.get("/", extractUser, getMyDoctorProfileController);
 
 // Update my doctor profile by logged-in doctor
-router.put("/profile", extractUser, updateMyDoctorProfileController);
+router.put("/", extractUser, updateMyDoctorProfileController);
 
 export default router;
