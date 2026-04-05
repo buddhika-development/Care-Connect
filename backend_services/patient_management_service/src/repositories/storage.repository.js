@@ -27,6 +27,19 @@ export async function uploadProfileImage(userId, file) {
   return data.publicUrl;
 }
 
+export async function deleteProfileImage(publicUrl) {
+  const path = publicUrl.split("/profile-images/")[1];
+
+  if (!path) return;
+
+  const { error } = await supabase.storage
+    .from(PROFILE_IMAGES_BUCKET)
+    .remove([path]);
+
+  if (error)
+    console.error("Failed to delete old profile image: " + error.message);
+}
+
 export async function uploadMedicalDocument(userId, file) {
   const extension = file.originalname.split(".").pop();
   const filePath = `${userId}/${uuidv4()}.${extension}`;
@@ -47,6 +60,17 @@ export async function uploadMedicalDocument(userId, file) {
   return filePath;
 }
 
+export async function deleteMedicalDocuments(filePaths) {
+  if (!filePaths || filePaths.length === 0) return;
+
+  const { error } = await supabase.storage
+    .from(MEDICAL_DOCUMENTS_BUCKET)
+    .remove(filePaths);
+
+  if (error)
+    console.log("Failed to delete medical documents: " + error.message);
+}
+
 export async function getSignedDocumentUrl(filePath) {
   const { data, error } = await supabase.storage
     .from(MEDICAL_DOCUMENTS_BUCKET)
@@ -57,4 +81,31 @@ export async function getSignedDocumentUrl(filePath) {
   }
 
   return data.signedUrl;
+}
+
+export async function getSignedDocumentUrls(filePaths) {
+  if (!filePaths || filePaths.length === 0) return [];
+
+  const signedUrls = await Promise.all(
+    filePaths.map(async (filePath) => {
+      const { data, error } = await supabase.storage
+        .from(MEDICAL_DOCUMENTS_BUCKET)
+        .createSignedUrl(filePath, 3600);
+
+      if (error) {
+        console.error(
+          `Failed to sign URL for path ${filePath}:`,
+          error.message,
+        );
+        return { path: filePath, signedUrl: null };
+      }
+
+      return {
+        path: filePath,
+        signedUrl: data.signedUrl,
+      };
+    }),
+  );
+
+  return signedUrls;
 }

@@ -56,3 +56,23 @@ export async function updateUserProfile(userId, profileData) {
 
   return { data, error };
 }
+
+export async function changeActivationStatus(userId, isActive) {
+  const { data, error } = await supabase
+    .from("users")
+    .update({ is_active: isActive })
+    .eq("id", userId)
+    .select();
+
+  return { isActive: data, isActiveError: error };
+}
+
+export async function changeVerificationStatus(userId, isVerified) {
+  const { data, error } = await supabase
+    .from("users")
+    .update({ is_verified: isVerified })
+    .eq("id", userId)
+    .select();
+
+  return { isVerified: data, isVerifiedError: error };
+}

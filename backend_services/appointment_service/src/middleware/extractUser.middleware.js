@@ -25,6 +25,22 @@ const extractUser = (req, res, next) => {
     });
   }
 
+  if (userId.length < 10 || userId.length > 100) {
+    return res.status(400).json({
+      success: false,
+      message: "User identity headers are invalid.",
+    });
+  }
+
+  const roleOptions = ["patient", "doctor", "admin"];
+
+  if (!roleOptions.includes(role)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid role provided in headers.",
+    });
+  }
+
   req.user = {
     userId,
     email,
