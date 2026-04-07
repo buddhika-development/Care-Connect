@@ -21,6 +21,17 @@ class GeminiService:
             logger.error(f"Something went wrong in the gemini connection... {e}")
             raise
     
+    def getGeminiStreamingChatModel(self, model_name: str) -> ChatGoogleGenerativeAI:
+        try:
+            return ChatGoogleGenerativeAI(
+                api_key = config.gemini_api_key,
+                model = model_name,
+                streaming = True
+            )
+        except Exception as e:
+            logger.error(f"Something went wrong in the gemini streaming connection... {e}")
+            raise
+
     def getGeminiEmbeddingModel(self, model_name: str) -> GoogleGenerativeAIEmbeddings:
         try:
             return GoogleGenerativeAIEmbeddings(

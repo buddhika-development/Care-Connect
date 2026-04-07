@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from src.config import config
 from src.core.db.postgres_connection import engine
+from src.routes.chat_route import router as chat_router
 import logging
 
 logging.basicConfig(
@@ -39,6 +40,7 @@ app = FastAPI(
     lifespan= lifespan
 )  
 app.include_router(api_v1_router)
+app.include_router(chat_router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn
