@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import doctorProfileRoutes from "./src/routes/doctorProfile.routes.js";
+import doctorAvailabilityRoutes from "./src/routes/doctorAvailability.routes.js";
 
 dotenv.config();
 
@@ -22,7 +23,8 @@ app.get("/health", (req, res) => {
 });
 
 // Doctor profile routes
-app.use("/api/doctors", doctorProfileRoutes);
+app.use("/api/doctors/profile", doctorProfileRoutes);
+app.use("/api/doctors/availability", doctorAvailabilityRoutes);
 
 // 404 handler
 app.use((req, res) => {
