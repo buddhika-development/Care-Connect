@@ -1,7 +1,9 @@
 import supabase from "../config/supabase.js";
 
+const doctorDb = supabase.schema("doctor_service");
+
 export const findDoctorProfileByUserId = async (userId) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_profiles")
     .select("id")
     .eq("user_id", userId)
@@ -9,7 +11,7 @@ export const findDoctorProfileByUserId = async (userId) => {
 };
 
 export const findAvailabilityByDate = async (doctorProfileId, availableDate) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability")
     .select("*")
     .eq("doctor_profile_id", doctorProfileId)
@@ -18,7 +20,7 @@ export const findAvailabilityByDate = async (doctorProfileId, availableDate) => 
 };
 
 export const createAvailability = async (data) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability")
     .insert([data])
     .select()
@@ -26,14 +28,14 @@ export const createAvailability = async (data) => {
 };
 
 export const createAvailabilitySlots = async (slots) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability_slots")
     .insert(slots)
     .select();
 };
 
 export const getMyAvailabilities = async (doctorProfileId) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability")
     .select(`
       *,
@@ -50,7 +52,7 @@ export const getMyAvailabilities = async (doctorProfileId) => {
 };
 
 export const getAvailabilityById = async (availabilityId, doctorProfileId) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability")
     .select("*")
     .eq("id", availabilityId)
@@ -59,7 +61,7 @@ export const getAvailabilityById = async (availabilityId, doctorProfileId) => {
 };
 
 export const countBookedSlots = async (availabilityId) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability_slots")
     .select("id", { count: "exact", head: true })
     .eq("availability_id", availabilityId)
@@ -67,7 +69,7 @@ export const countBookedSlots = async (availabilityId) => {
 };
 
 export const updateAvailability = async (availabilityId, data) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability")
     .update(data)
     .eq("id", availabilityId)
@@ -76,14 +78,14 @@ export const updateAvailability = async (availabilityId, data) => {
 };
 
 export const deleteSlotsByAvailabilityId = async (availabilityId) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability_slots")
     .delete()
     .eq("availability_id", availabilityId);
 };
 
 export const deleteAvailability = async (availabilityId) => {
-  return await supabase
+  return await doctorDb
     .from("doctor_availability")
     .delete()
     .eq("id", availabilityId)
