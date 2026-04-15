@@ -23,6 +23,15 @@ class ChatSessionRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_user_id(self, user_id: uuid.UUID) -> list[ChatSession]:
+        """Return all ChatSessions for a given user, ordered by most recent first."""
+        result = await self._db.execute(
+            select(ChatSession)
+            .where(ChatSession.user_id == user_id)
+            .order_by(ChatSession.created_datetime.desc())
+        )
+        return list(result.scalars().all())
+
     async def create_session(
         self,
         user_id: uuid.UUID,

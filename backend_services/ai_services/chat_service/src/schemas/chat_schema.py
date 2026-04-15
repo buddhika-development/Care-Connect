@@ -11,3 +11,18 @@ class ChatRequest(BaseModel):
         default=None,
         description="Existing session ID. Omit or pass null to start a new session.",
     )
+
+
+from datetime import datetime
+
+class ChatSessionResponse(BaseModel):
+    """Response model for a chat session."""
+    id: uuid.UUID
+    chat_title: str
+    user_id: uuid.UUID
+    created_datetime: datetime | None = None
+    updated_datetime: datetime | None = None
+
+    model_config = {
+        "from_attributes": True
+    }
