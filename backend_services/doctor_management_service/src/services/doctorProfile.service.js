@@ -1,5 +1,6 @@
 import {
   createDoctorProfile,
+  getAllDoctorsWithAvailability,
   findDoctorProfileByUserId,
   updateDoctorProfileByUserId,
 } from "../repositories/doctorProfile.repository.js";
@@ -162,4 +163,19 @@ export const updateMyDoctorProfileService = async (user, body) => {
   }
 
   return data;
+};
+
+// Get all doctors with their nested availability and slots
+export const getAllDoctorsWithAvailabilityService = async (query = {}) => {
+  const { specialization } = query;
+
+  const { data, error } = await getAllDoctorsWithAvailability({
+    specialization,
+  });
+
+  if (error) {
+    throw new DatabaseError(error.message);
+  }
+
+  return data || [];
 };

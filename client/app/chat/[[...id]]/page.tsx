@@ -6,6 +6,7 @@ import { Sun, Moon, Menu } from 'lucide-react';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatMessage from '@/components/chat/ChatMessage';
 import ChatSidebar from '@/components/chat/ChatSidebar';
+// Note: These components are now in src/components/chat/
 
 const API_BASE = 'http://localhost:8000/api/v1';
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
