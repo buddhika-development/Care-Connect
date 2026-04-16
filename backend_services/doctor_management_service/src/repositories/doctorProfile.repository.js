@@ -42,3 +42,13 @@ export const getAllDoctorsWithAvailability = async ({
 
   return await query.order("full_name", { ascending: true });
 };
+
+// Update doctor embedding by doctor profile ID (internal service call)
+export const updateDoctorEmbedding = async (doctorId, embedding) => {
+  return await doctorDb
+    .from("doctor_profiles")
+    .update({ embedding })
+    .eq("id", doctorId)
+    .select()
+    .single();
+};

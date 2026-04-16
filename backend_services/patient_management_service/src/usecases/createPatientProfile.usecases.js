@@ -8,6 +8,7 @@ import {
   uploadProfileImage,
 } from "../repositories/storage.repository.js";
 import { CompleteProfileService } from "../services/completeProfile.service.js";
+import { analyzePatientMedicalDocuments } from "../services/documentAnalysis.service.js";
 import {
   AppError,
   DatabaseError,
@@ -135,6 +136,9 @@ export async function CreatePatientProfileUsecase(
         uploadMedicalDocument(userId, file),
       );
       medicalReportPaths = await Promise.all(uploadPromises);
+
+      // Analyze medical documents via document service (batch processing)
+      await analyzePatientMedicalDocuments(userId, medicalReportPaths);
     }
 
     const patientProfileData = {

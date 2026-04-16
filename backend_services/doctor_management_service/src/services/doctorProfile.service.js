@@ -3,6 +3,7 @@ import {
   getAllDoctorsWithAvailability,
   findDoctorProfileByUserId,
   updateDoctorProfileByUserId,
+  updateDoctorEmbedding,
 } from "../repositories/doctorProfile.repository.js";
 import {
   AppError,
@@ -178,4 +179,43 @@ export const getAllDoctorsWithAvailabilityService = async (query = {}) => {
   }
 
   return data || [];
+};
+
+// Update doctor embedding (internal service call - no auth required)
+export const updateDoctorEmbeddingService = async (doctorId, embeddingData) => {
+  // Validate doctor ID
+  if (!doctorId) {
+    throw new ValidationError("Doctor ID is required");
+  }
+
+  // Validate embedding data
+  if (!embeddingData) {
+    throw new ValidationError("Embedding data is required");
+  }
+
+  // Validate embedding is an array (vector type)
+  if (!Array.isArray(embeddingData)) {
+    throw new ValidationError("Embedding must be a vector (array of numbers)");
+  }
+
+  // Validate embedding contains numbers
+  if (embeddingData.length === 0) {
+    throw new ValidationError("Embedding vector cannot be empty");
+  }
+
+  if (!embeddingData.every((item) => typeof item === "number")) {
+    throw new ValidationError("All values in embedding must be numbers");
+  }
+
+  const { data, error } = await updateDoctorEmbedding(doctorId, embeddingData);
+
+  if (error) {
+    throw new DatabaseError(error.message);
+  }
+
+  if (!data) {
+    throw new NotFoundError("Doctor profile not found");
+  }
+
+  return data;
 };
