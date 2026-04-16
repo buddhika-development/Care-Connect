@@ -1,9 +1,13 @@
 import logging
+from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import config
+from src.core.db.postgres_connection import engine
 from src.routes.document_route import router as document_router
+from src.routes.doctor_route import router as doctor_router
 from src.routes.user_route import router as user_router
 
 logging.basicConfig(
@@ -11,6 +15,17 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.db_engine = engine
+    logger.info("✅ Database connection pool started")
+
+    yield
+
+    await engine.dispose()
+    logger.info("🛑 Database connection pool closed")
 
 
 api_router = APIRouter(prefix="/api")
@@ -30,6 +45,7 @@ app = FastAPI(
     title="Summarization Service",
     version="0.1.0",
     description="Care Connect document summarization microservice powered by Docling and Gemini.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -43,6 +59,7 @@ app.add_middleware(
 app.include_router(api_router)
 app.include_router(document_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
+app.include_router(doctor_router, prefix="/api")
 
 
 if __name__ == "__main__":
