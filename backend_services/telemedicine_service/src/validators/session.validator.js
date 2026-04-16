@@ -9,14 +9,17 @@ const SessionValidator = {
     if (!doctorId) throw new MissingFieldError("doctorId");
     if (!scheduledAt) throw new MissingFieldError("scheduledAt");
 
-    if (isNaN(parseInt(appointmentId))) {
-      throw new InvalidInputError("appointmentId must be a valid number.");
+    // UUID validation instead of number check
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidRegex.test(appointmentId)) {
+      throw new InvalidInputError("appointmentId must be a valid UUID.");
     }
-    if (isNaN(parseInt(patientId))) {
-      throw new InvalidInputError("patientId must be a valid number.");
+    if (!uuidRegex.test(patientId)) {
+      throw new InvalidInputError("patientId must be a valid UUID.");
     }
-    if (isNaN(parseInt(doctorId))) {
-      throw new InvalidInputError("doctorId must be a valid number.");
+    if (!uuidRegex.test(doctorId)) {
+      throw new InvalidInputError("doctorId must be a valid UUID.");
     }
 
     const date = new Date(scheduledAt);

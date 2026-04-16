@@ -1,33 +1,33 @@
-import express, { json } from "express";
-import cors from "cors";
 import dotenv from "dotenv";
-import extractUser from "./src/middleware/extractUser.middleware.js";
+import app from "./src/app.js";
+import supabase from "./src/config/supabase.js";
+import InternalService from "./src/services/internal.service.js";
 
 dotenv.config();
-const app = express();
 
-app.use(cors());
-app.use(json());
+const PORT = process.env.PORT || 3003;
 
-const PORT = process.env.PORT || 3001;
-
-// Public route - just to check service is alive
-app.get("/health", (req, res) => {
-  res.json({
-    success: true,
-    service: "appointment-service",
-    message: "Service is running",
+// Test Supabase connection on startup
+supabase
+  .schema("appointments")
+  .from("appointments")
+  .select("count")
+  .then(({ error }) => {
+    if (error) console.error("Supabase connection failed:", error.message);
+    else console.log("Supabase connected");
   });
-});
 
-// Protected test route - must come through gateway
-app.get("/api/appointments/test", extractUser, (req, res) => {
-  res.json({
-    success: true,
-    message: "Gateway header auth working correctly",
-    userFromGateway: req.user,
-  });
-});
+// Auto-cancel job — runs every 60 seconds
+setInterval(async () => {
+  try {
+    const count = await InternalService.autoCancelExpiredAppointments();
+    if (count > 0) {
+      console.log(`Auto-cancel job: cancelled ${count} expired appointments`);
+    }
+  } catch (error) {
+    console.error("Auto-cancel job failed:", error.message);
+  }
+}, 60 * 1000);
 
 app.listen(PORT, () => {
   console.log(`Appointment service running on port ${PORT}`);
