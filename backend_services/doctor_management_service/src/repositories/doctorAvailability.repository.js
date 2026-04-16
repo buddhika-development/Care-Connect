@@ -109,3 +109,45 @@ export const updateAvailabilitySlotBookStatus = async (slotId, isBooked) => {
     .select()
     .single();
 };
+
+export const getAvailabilitySlotDetailsById = async (slotId) => {
+  return await doctorDb
+    .from("doctor_availability_slots")
+    .select(`
+      id,
+      availability_id,
+      slot_date,
+      slot_start_time,
+      slot_end_time,
+      is_booked,
+      created_at,
+      updated_at,
+      doctor_availability (
+        id,
+        doctor_profile_id,
+        available_date,
+        start_time,
+        end_time,
+        slot_duration_minutes,
+        channeling_mode,
+        consultation_fee,
+        status,
+        created_at,
+        updated_at,
+        doctor_profiles (
+          id,
+          user_id,
+          full_name,
+          specialization,
+          license_number,
+          experience_years,
+          bio,
+          created_at,
+          updated_at,
+          room_number
+        )
+      )
+    `)
+    .eq("id", slotId)
+    .maybeSingle();
+};

@@ -11,6 +11,7 @@ import {
   deleteAvailability,
   getAvailabilitySlotById,
   updateAvailabilitySlotBookStatus,
+  getAvailabilitySlotDetailsById,
 } from "../repositories/doctorAvailability.repository.js";
 import {
   ValidationError,
@@ -263,6 +264,24 @@ export const updateAvailabilitySlotBookStatusService = async (slotId, body) => {
   const { data, error } = await updateAvailabilitySlotBookStatus(slotId, is_booked);
 
   if (error) throw new DatabaseError(error.message);
+
+  return data;
+};
+
+export const getAvailabilitySlotDetailsByIdService = async (slotId) => {
+  if (!slotId) {
+    throw new ValidationError("slotId is required");
+  }
+
+  const { data, error } = await getAvailabilitySlotDetailsById(slotId);
+
+  if (error) {
+    throw new DatabaseError(error.message);
+  }
+
+  if (!data) {
+    throw new NotFoundError("Availability slot not found");
+  }
 
   return data;
 };
