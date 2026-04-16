@@ -19,6 +19,15 @@ const AppointmentService = {
 
     if (!slotData) throw new NotFoundError("Slot");
 
+    // Extract nested fields from response
+    const availability = slotData.doctor_availability;
+    const channelingMode = availability.channeling_mode;
+    const consultationFee = availability.consultation_fee;
+    const scheduledAt = new Date(
+      `${slotData.slot_date}T${slotData.slot_start_time}`
+    );
+    const appointmentDate = slotData.slot_date;
+
     // Step 2 — Check slot availability
     const existingAppointment =
       await AppointmentRepository.findBySlotId(slotId);
@@ -36,15 +45,11 @@ const AppointmentService = {
     }
 
     // Step 3 — Validate scheduled_at is not in the past
-    const scheduledAt = new Date(
-      `${slotData.slot_date}T${slotData.slot_start_time}`
-    );
     if (scheduledAt < new Date()) {
       throw new InvalidInputError("Cannot book an appointment in the past.");
     }
 
     // Step 4 — Check same day conflicts for patient
-    const appointmentDate = slotData.slot_date;
     const sameDay = await AppointmentRepository.findByPatientIdAndDate(
       patientId,
       appointmentDate
@@ -65,8 +70,8 @@ const AppointmentService = {
       patient_id: patientId,
       doctor_id: doctorId,
       slot_id: slotId,
-      channelling_mode: slotData.channelling_mode,
-      consultation_fee: slotData.consultation_fee,
+      channeling_mode: channelingMode,
+      consultation_fee: consultationFee,
       scheduled_at: scheduledAt.toISOString(),
       appointment_status: "pending",
       payment_status: "pending",

@@ -153,14 +153,14 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updateSlot(appointmentId, newSlotId, scheduledAt, channellingMode) {
+  async updateSlot(appointmentId, newSlotId, scheduledAt, channelingMode) {
     const { data, error } = await supabase
       .schema("appointments")
       .from("appointments")
       .update({
         slot_id: newSlotId,
         scheduled_at: scheduledAt,
-        channelling_mode: channellingMode,
+        channeling_mode: channelingMode,
         appointment_status: "rescheduled",
       })
       .eq("id", appointmentId)

@@ -55,7 +55,7 @@ const AppointmentStatusService = {
 
     // Step 3 — Cancel telemedicine session if online (must succeed)
     if (
-      appointment.channelling_mode === "online" &&
+      appointment.channeling_mode === "online" &&
       appointment.telemedicine_session_id
     ) {
       try {
@@ -124,8 +124,8 @@ const AppointmentStatusService = {
       throw new InvalidInputError("Cannot reschedule to a past slot.");
     }
 
-    const oldMode = appointment.channelling_mode;
-    const newMode = newSlotData.channelling_mode;
+    const oldMode = appointment.channeling_mode;
+    const newMode = newSlotData.channeling_mode;
 
     try {
       await updateSlotBookingStatus(appointment.slot_id, false);
