@@ -1,4 +1,4 @@
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 chat_prompt_template = ChatPromptTemplate.from_messages(
     [
@@ -15,6 +15,7 @@ Guidelines:
 - Maintain a warm, supportive tone at all times.
 - Respond in the same language as the user's message.""",
         ),
+        MessagesPlaceholder(variable_name="history"),
         ("human", "{message}"),
     ]
 )
