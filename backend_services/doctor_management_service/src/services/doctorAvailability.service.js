@@ -9,6 +9,8 @@ import {
   updateAvailability,
   deleteSlotsByAvailabilityId,
   deleteAvailability,
+  getAvailabilitySlotById,
+  updateAvailabilitySlotBookStatus,
 } from "../repositories/doctorAvailability.repository.js";
 import {
   ValidationError,
@@ -242,6 +244,25 @@ export const cancelDoctorAvailabilityService = async (user, availabilityId) => {
 
   const { data, error: deleteError } = await deleteAvailability(availabilityId);
   if (deleteError) throw new DatabaseError(deleteError.message);
+
+  return data;
+};
+
+export const updateAvailabilitySlotBookStatusService = async (slotId, body) => {
+  const { is_booked } = body;
+
+  if (typeof is_booked !== "boolean") {
+    throw new ValidationError("is_booked must be true or false");
+  }
+
+  const { data: existingSlot, error: existingError } = await getAvailabilitySlotById(slotId);
+
+  if (existingError) throw new DatabaseError(existingError.message);
+  if (!existingSlot) throw new NotFoundError("Availability slot not found");
+
+  const { data, error } = await updateAvailabilitySlotBookStatus(slotId, is_booked);
+
+  if (error) throw new DatabaseError(error.message);
 
   return data;
 };
