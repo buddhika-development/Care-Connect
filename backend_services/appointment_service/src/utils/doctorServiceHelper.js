@@ -11,12 +11,3 @@ export const updateSlotBookingStatus = async (slotId, isBooked) => {
     { is_booked: isBooked }
   );
 };
-
-export const getSlotDetails = async (slotId) => {
-  const response = await httpClient.get(
-    DOCTOR_SERVICE_URL,
-    `/api/doctors/availability/slots/${slotId}`,
-    serviceNames.APPOINTMENT_SERVICE
-  );
-  return response.data;
-};
