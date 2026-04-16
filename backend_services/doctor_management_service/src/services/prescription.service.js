@@ -4,6 +4,7 @@ import {
   getPrescriptionById,
   getPrescriptionsByAppointmentId,
   getPrescriptionsByDoctorProfileId,
+  getActivePrescriptionsByAppointmentId,
   updatePrescriptionStatus,
 } from "../repositories/prescriptions.repository.js";
 import {
@@ -11,6 +12,9 @@ import {
   NotFoundError,
   ValidationError,
 } from "../utils/errors.utils.js";
+import {
+  getAppointmentForDoctor,
+} from "../utils/appointmentServiceHelper.js";
 
 const getDoctorProfileId = async (user) => {
   if (!user || !user.userId) {
@@ -31,11 +35,11 @@ const getDoctorProfileId = async (user) => {
 };
 
 const validatePrescriptionInput = (body) => {
-  const { appointment_id, patient_id, diagnosis, medications } = body;
+  const { diagnosis, medications } = body;
 
-  if (!appointment_id || !patient_id || !diagnosis || !medications) {
+  if (!diagnosis || !medications) {
     throw new ValidationError(
-      "appointment_id, patient_id, diagnosis and medications are required",
+      "diagnosis and medications are required",
     );
   }
 
@@ -44,15 +48,41 @@ const validatePrescriptionInput = (body) => {
   }
 };
 
-export const createPrescriptionService = async (user, body) => {
+export const createPrescriptionService = async (
+  user,
+  appointmentId,
+  body,
+) => {
   const doctorProfileId = await getDoctorProfileId(user);
 
   validatePrescriptionInput(body);
 
+  if (body.appointment_id && body.appointment_id !== appointmentId) {
+    throw new ValidationError(
+      "appointment_id in body must match the appointmentId path parameter",
+    );
+  }
+
+  const appointment = await getAppointmentForDoctor(
+    appointmentId,
+    user.userId,
+  );
+
+  const activePrescriptions = await getActivePrescriptionsByAppointmentId(
+    appointmentId,
+    doctorProfileId,
+  );
+
+  if (activePrescriptions && activePrescriptions.length > 0) {
+    throw new ValidationError(
+      "A previous prescription for this appointment must be cancelled before creating a new one.",
+    );
+  }
+
   const createdPrescription = await createPrescription({
     doctor_profile_id: doctorProfileId,
-    patient_id: body.patient_id,
-    appointment_id: body.appointment_id,
+    patient_id: appointment.patient_id,
+    appointment_id: appointmentId,
     diagnosis: body.diagnosis,
     medications: body.medications,
     notes: body.notes || null,
@@ -80,6 +110,8 @@ export const getPrescriptionsByAppointmentService = async (
   }
 
   const doctorProfileId = await getDoctorProfileId(user);
+
+  await getAppointmentForDoctor(appointmentId, user.userId);
 
   const prescriptions = await getPrescriptionsByAppointmentId(
     appointmentId,

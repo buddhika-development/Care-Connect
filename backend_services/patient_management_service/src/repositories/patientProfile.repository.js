@@ -40,7 +40,7 @@ export async function getPatientProfileByUserId(userId) {
     .from("patient_profile")
     .select("*")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   console.log("getPatientProfileByUserId - data:", data, "error:", error);
 

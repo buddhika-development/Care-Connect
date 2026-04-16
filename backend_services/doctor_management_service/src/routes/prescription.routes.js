@@ -9,7 +9,11 @@ import {
 
 const router = express.Router();
 
-router.post("/", extractUser, createPrescriptionController);
+router.post(
+  "/appointment/:appointmentId",
+  extractUser,
+  createPrescriptionController,
+);
 router.get("/", extractUser, getMyPrescriptionsController);
 router.get(
   "/appointment/:appointmentId",
