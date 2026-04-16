@@ -5,7 +5,6 @@ import {
   getMyDoctorAvailabilitiesController,
   updateDoctorAvailabilityController,
   cancelDoctorAvailabilityController,
-  updateAvailabilitySlotBookStatusController,
 } from "../controllers/doctorAvailability.controller.js";
 
 const router = express.Router();
@@ -14,6 +13,5 @@ router.post("/", extractUser, createDoctorAvailabilityController);
 router.get("/", extractUser, getMyDoctorAvailabilitiesController);
 router.put("/:availabilityId", extractUser, updateDoctorAvailabilityController);
 router.delete("/:availabilityId", extractUser, cancelDoctorAvailabilityController);
-router.patch("/slots/:slotId/book-status", extractUser, updateAvailabilitySlotBookStatusController);
 
 export default router;
