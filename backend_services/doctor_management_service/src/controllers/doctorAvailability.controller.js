@@ -4,6 +4,7 @@ import {
   updateDoctorAvailabilityService,
   cancelDoctorAvailabilityService,
   updateAvailabilitySlotBookStatusService,
+  getAvailabilitySlotDetailsByIdService,
 } from "../services/doctorAvailability.service.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.utils.js";
 
@@ -55,6 +56,24 @@ export const updateAvailabilitySlotBookStatusController = async (req, res) => {
     );
 
     return sendSuccess(res, 200, "Availability slot booking status updated successfully", data);
+  } catch (error) {
+    return sendError(res, error.statusCode || 500, error.message);
+  }
+};
+
+
+export const getAvailabilitySlotDetailsByIdController = async (req, res) => {
+  try {
+    const { slotId } = req.params;
+
+    const data = await getAvailabilitySlotDetailsByIdService(slotId);
+
+    return sendSuccess(
+      res,
+      200,
+      "Availability slot details fetched successfully",
+      data,
+    );
   } catch (error) {
     return sendError(res, error.statusCode || 500, error.message);
   }
