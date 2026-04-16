@@ -1,6 +1,5 @@
 import httpClient from "./httpClient.js";
 import { serviceNames } from "../constant/serviceNames.constant.js";
-import { AppError } from "./errors.utils.js";
 
 const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL;
 
