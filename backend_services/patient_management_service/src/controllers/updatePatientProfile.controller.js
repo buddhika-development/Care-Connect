@@ -1,27 +1,25 @@
-import { CreatePatientProfileUsecase } from "../usecases/createPatientProfile.usecases.js";
+import { UpdatePatientProfileUsecase } from "../usecases/updatePatientProfile.usecase.js";
 import { ApiResponse } from "../utils/apiResponse.utils.js";
 
-export const CreatePatientProfileController = async (req, res, next) => {
+export const UpdatePatientProfileController = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const headerEmail = req.user.email;
 
     console.log(
-      "Creating patient profile for userId:",
+      "Updating patient profile for userId:",
       userId,
       "with email:",
       headerEmail,
     );
 
-    const result = await CreatePatientProfileUsecase(
+    const result = await UpdatePatientProfileUsecase(
       userId,
       headerEmail,
       req.body,
       req.files,
     );
 
-    console.log("CreatePatientProfileUsecase result:", result);
-    console.log("Result success:", result.success);
     if (result.success) {
       return ApiResponse.created(res, {
         message: result.message,
@@ -29,7 +27,7 @@ export const CreatePatientProfileController = async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.error("Error in CreatePatientProfileController:", error);
+    console.error("Error in UpdatePatientProfileController:", error);
     next(error);
   }
 };
