@@ -1,11 +1,16 @@
 import express, { json } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import extractUser from "./src/middleware/extractUser.middleware.js";
+import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
+import paymentRoutes from "./src/routes/payment.routes.js";
+import { errorHandler } from "./src/middleware/errorHandler.middleware.js";
 
 dotenv.config();
 const app = express();
 
+app.use(morgan("dev"));
 app.use(cors());
 app.use(json());
 
@@ -20,14 +25,21 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Protected test route - must come through gateway
-app.get("/api/payments/test", extractUser, (req, res) => {
-  res.json({
-    success: true,
-    message: "Gateway header auth working correctly",
-    userFromGateway: req.user,
-  });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Temporary test route — remove after testing
+app.get("/test-payment", (req, res) => {
+  res.sendFile(path.join(__dirname, "test-payment.html"));
 });
+
+app.use("/api/payments/webhook", express.urlencoded({ extended: true }));
+app.use(express.json());
+
+app.use("/api/payments", paymentRoutes);
+
+// Global error handler — catches anything thrown in controllers
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Payment service running on port ${PORT}`);

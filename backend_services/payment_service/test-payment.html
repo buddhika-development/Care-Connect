@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <title>PayHere Test</title>
+  </head>
+  <body>
+    <h2>CareConnect - Test Payment</h2>
+    <button onclick="pay()">Pay Now - LKR 2500.00</button>
+
+    <script>
+      async function pay() {
+        // Step 1 - Call your backend to get checkout data
+        const response = await fetch(
+          "http://localhost:3005/api/payments/initiate",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              // Same headers gateway would send
+              "x-gateway-secret": "lHYwpOD7ESXtuc0OPMs1j2uhGJXoRRg4enZgbcjS2Aj",
+              "x-user-id": "f860f02e-d88e-486e-bf7b-989f0d727e6e",
+              "x-user-email": "test1@example.com",
+              "x-user-role": "patient",
+            },
+            body: JSON.stringify({
+              appointmentId: "660e9500-f30c-52e5-b827-557766551111",
+              amount: 2500,
+              patientName: "Kamal Perera",
+              patientEmail: "test1@example.com",
+              patientPhone: "0711234567",
+            }),
+          },
+        );
+
+        const data = await response.json();
+        const { checkoutData, paymentUrl } = data.data;
+
+        // Step 2 - Build a form and submit to PayHere
+        // PayHere ONLY accepts form POST — not fetch or axios
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = paymentUrl;
+
+        // Add every field from checkoutData as hidden inputs
+        Object.entries(checkoutData).forEach(([key, value]) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit(); // Redirects to PayHere sandbox page
+      }
+    </script>
+  </body>
+</html>

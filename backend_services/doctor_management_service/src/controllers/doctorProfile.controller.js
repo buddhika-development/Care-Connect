@@ -3,6 +3,7 @@ import {
   getAllDoctorsWithAvailabilityService,
   getMyDoctorProfileService,
   updateMyDoctorProfileService,
+  updateDoctorEmbeddingService,
 } from "../services/doctorProfile.service.js";
 import { sendError, sendSuccess } from "../utils/apiResponse.utils.js";
 
@@ -45,6 +46,20 @@ export const getAllDoctorsWithAvailabilityController = async (req, res) => {
     const data = await getAllDoctorsWithAvailabilityService(req.query);
 
     return sendSuccess(res, 200, "Doctors fetched successfully", data);
+  } catch (error) {
+    return sendError(res, error.statusCode || 500, error.message);
+  }
+};
+
+// Update doctor embedding (internal service-to-service call)
+export const updateDoctorEmbeddingController = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const { embedding } = req.body;
+
+    const data = await updateDoctorEmbeddingService(doctorId, embedding);
+
+    return sendSuccess(res, 200, "Doctor embedding updated successfully", data);
   } catch (error) {
     return sendError(res, error.statusCode || 500, error.message);
   }

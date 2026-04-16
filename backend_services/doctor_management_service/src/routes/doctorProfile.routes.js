@@ -5,6 +5,7 @@ import {
   getAllDoctorsWithAvailabilityController,
   getMyDoctorProfileController,
   updateMyDoctorProfileController,
+  updateDoctorEmbeddingController,
 } from "../controllers/doctorProfile.controller.js";
 
 const router = express.Router();
@@ -20,5 +21,8 @@ router.get("/", extractUser, getMyDoctorProfileController);
 
 // Update my doctor profile by logged-in doctor
 router.put("/", extractUser, updateMyDoctorProfileController);
+
+// Update doctor embedding (internal service-to-service call - no auth middleware)
+router.patch("/:doctorId/embedding", updateDoctorEmbeddingController);
 
 export default router;
