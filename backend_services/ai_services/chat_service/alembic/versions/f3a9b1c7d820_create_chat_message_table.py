@@ -41,20 +41,26 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(
             ["session_id"],
-            ["chat_session.id"],
+            ["ai_service.chat_session.id"],
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
+        schema="ai_service",
     )
     op.create_index(
         op.f("ix_chat_message_session_id"),
         "chat_message",
         ["session_id"],
         unique=False,
+        schema="ai_service",
     )
 
 
 def downgrade() -> None:
     """Drop chat_message table."""
-    op.drop_index(op.f("ix_chat_message_session_id"), table_name="chat_message")
-    op.drop_table("chat_message")
+    op.drop_index(
+        op.f("ix_chat_message_session_id"),
+        table_name="chat_message",
+        schema="ai_service",
+    )
+    op.drop_table("chat_message", schema="ai_service")

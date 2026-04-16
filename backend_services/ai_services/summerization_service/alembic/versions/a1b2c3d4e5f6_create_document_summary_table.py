@@ -18,30 +18,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Create the document_summary table."""
+    """Create ai_service schema and the document_summary table."""
+    op.execute("CREATE SCHEMA IF NOT EXISTS ai_service")
+
     op.create_table(
         "document_summary",
-        sa.Column(
-            "id",
-            UUID(as_uuid=True),
-            primary_key=True,
-            nullable=False,
-        ),
-        sa.Column(
-            "user_id",
-            UUID(as_uuid=True),
-            nullable=False,
-        ),
-        sa.Column(
-            "document_id",
-            sa.Text(),
-            nullable=False,
-        ),
-        sa.Column(
-            "document_summary",
-            sa.Text(),
-            nullable=False,
-        ),
+        sa.Column("id", UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column("user_id", UUID(as_uuid=True), nullable=False),
+        sa.Column("document_id", sa.Text(), nullable=False),
+        sa.Column("document_summary", sa.Text(), nullable=False),
         sa.Column(
             "created_datetime",
             sa.DateTime(timezone=True),
@@ -52,16 +37,27 @@ def upgrade() -> None:
             "updated_datetime",
             sa.DateTime(timezone=True),
             server_default=sa.func.now(),
-            onupdate=sa.func.now(),
             nullable=False,
         ),
+        schema="ai_service",
     )
-    op.create_index("ix_document_summary_user_id", "document_summary", ["user_id"])
-    op.create_index("ix_document_summary_document_id", "document_summary", ["document_id"])
+    op.create_index(
+        "ix_document_summary_user_id",
+        "document_summary",
+        ["user_id"],
+        schema="ai_service",
+    )
+    op.create_index(
+        "ix_document_summary_document_id",
+        "document_summary",
+        ["document_id"],
+        schema="ai_service",
+    )
 
 
 def downgrade() -> None:
-    """Drop the document_summary table."""
-    op.drop_index("ix_document_summary_document_id", table_name="document_summary")
-    op.drop_index("ix_document_summary_user_id", table_name="document_summary")
-    op.drop_table("document_summary")
+    """Drop the document_summary table and ai_service schema."""
+    op.drop_index("ix_document_summary_document_id", table_name="document_summary", schema="ai_service")
+    op.drop_index("ix_document_summary_user_id", table_name="document_summary", schema="ai_service")
+    op.drop_table("document_summary", schema="ai_service")
+    op.execute("DROP SCHEMA IF EXISTS ai_service CASCADE")

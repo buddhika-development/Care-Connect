@@ -19,9 +19,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    op.execute("CREATE SCHEMA IF NOT EXISTS ai_service")
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     op.execute("DROP EXTENSION IF EXISTS vector")
+    op.execute("DROP SCHEMA IF EXISTS ai_service CASCADE")
