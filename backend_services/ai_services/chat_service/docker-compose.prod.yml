@@ -1,0 +1,11 @@
+services:
+  chat-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chat-service
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.production   # ← points to supabase env
+    restart: unless-stopped
