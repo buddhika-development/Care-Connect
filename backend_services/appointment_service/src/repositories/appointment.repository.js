@@ -187,19 +187,6 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updatePrescriptionId(appointmentId, prescriptionId) {
-    const { data, error } = await supabase
-      .schema("appointments")
-      .from("appointments")
-      .update({ prescription_id: prescriptionId })
-      .eq("id", appointmentId)
-      .select()
-      .single();
-
-    if (error) throw new DatabaseError(error.message);
-    if (!data) throw new NotFoundError("Appointment");
-    return data;
-  },
 };
 
 export default AppointmentRepository;

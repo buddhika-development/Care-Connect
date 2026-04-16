@@ -107,16 +107,6 @@ const InternalService = {
     throw new InvalidInputError(`Invalid payment status: ${paymentStatus}`);
   },
 
-  async updatePrescriptionId(appointmentId, prescriptionId) {
-    const appointment = await AppointmentRepository.findById(appointmentId);
-    if (!appointment) throw new NotFoundError("Appointment");
-
-    return await AppointmentRepository.updatePrescriptionId(
-      appointmentId,
-      prescriptionId,
-    );
-  },
-
   async autoCancelExpiredAppointments() {
     const cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const expiredAppointments =

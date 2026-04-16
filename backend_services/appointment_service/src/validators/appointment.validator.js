@@ -49,12 +49,6 @@ const AppointmentValidator = {
       throw new MissingFieldError("paymentId");
     }
   },
-
-  validatePrescriptionUpdate(data) {
-    const { prescriptionId } = data;
-
-    if (!prescriptionId) throw new MissingFieldError("prescriptionId");
-  },
 };
 
 export default AppointmentValidator;
