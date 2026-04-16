@@ -93,27 +93,6 @@ const InternalController = {
     }
   },
 
-  async updatePrescriptionId(req, res, next) {
-    try {
-      const { appointmentId } = req.params;
-      const { prescriptionId } = req.body;
-
-      AppointmentValidator.validatePrescriptionUpdate({ prescriptionId });
-
-      const appointment = await InternalService.updatePrescriptionId(
-        appointmentId,
-        prescriptionId
-      );
-
-      return res.status(200).json({
-        success: true,
-        message: "Prescription ID updated successfully.",
-        data: appointment,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
 };
 
 export default InternalController;
