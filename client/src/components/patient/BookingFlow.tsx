@@ -36,7 +36,6 @@ export default function BookingFlow({ doctor, onClose }: BookingFlowProps) {
   // Payment processing state
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState<'booking' | 'payment' | 'redirecting' | null>(null);
-  const [reason, setReason] = useState('');
 
   const { mutateAsync: createAppointment } = useCreateAppointment();
 
@@ -92,11 +91,15 @@ export default function BookingFlow({ doctor, onClose }: BookingFlowProps) {
 
     try {
       // Step 1: create the appointment record
+      // Build scheduledAt ISO string: combine date + slot start time
       setProcessingStep('booking');
+      const scheduledAt = `${selectedDate}T${selectedSlot.startTime}:00`;
       const apt = await createAppointment({
         doctorId: doctor.id,
         slotId: selectedSlot.id,
-        reason: reason.trim(),
+        scheduledAt,
+        channelingMode: consultationType,
+        consultationFee: currentFee,
       });
 
       // Step 2: initiate PayHere payment
@@ -308,26 +311,6 @@ export default function BookingFlow({ doctor, onClose }: BookingFlowProps) {
                 ))}
               </div>
 
-              {/* Reason for visit */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-1.5">
-                  Reason for Visit <span className="text-error">*</span>
-                </label>
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                  placeholder="Briefly describe your symptoms or reason for the appointment (min 10 characters)…"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm text-text placeholder:text-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <p className={`text-xs mt-1 text-right ${
-                  reason.trim().length > 0 && reason.trim().length < 10 ? 'text-error' : 'text-text-muted'
-                }`}>
-                  {reason.trim().length}/500{reason.trim().length > 0 && reason.trim().length < 10 ? ' (min 10)' : ''}
-                </p>
-              </div>
-
               {/* PayHere branding notice */}
               <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
                 <CreditCard className="w-4 h-4 text-blue-500 shrink-0" />
@@ -388,7 +371,7 @@ export default function BookingFlow({ doctor, onClose }: BookingFlowProps) {
                 setStep(4);
                 await handleConfirmAndPay();
               }}
-              disabled={isProcessing || reason.trim().length < 10}
+              disabled={isProcessing}
               className="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-medium transition-all disabled:opacity-60"
             >
               {isProcessing ? (

@@ -118,11 +118,13 @@ export async function HandleWebhookUsecase(webhookData) {
   console.log(`Payment status for appointment ${order_id}: ${newStatus}`);
 
   // ── 6. Update payment record in DB ────────────────────────────
-  await updatePaymentByAppointmentId(order_id, {
+  const updatedPayment = await updatePaymentByAppointmentId(order_id, {
     status: newStatus,
     payhere_payment_id: payment_id || null,
     payhere_response: webhookData, // store full raw response for debugging
   });
+
+  console.log("Payment record updated in DB:", updatedPayment);
 
   // ── 7. If payment successful → notify Appointment Service ─────
   // Only do this when status_code is exactly "2" (success)
@@ -140,7 +142,7 @@ export async function HandleWebhookUsecase(webhookData) {
       `${process.env.APPOINTMENT_SERVICE_URL}/api/internal/appointments/${order_id}/payment`,
       {
         paymentStatus: appointmentPaymentStatus,
-        paymentId: payment_id || null,
+        paymentId: updatedPayment.id || null,
       },
       {
         headers: {

@@ -63,7 +63,8 @@ export interface DoctorProfile {
 }
 
 export interface DoctorCard {
-  id: string;
+  id: string;        // doctor_profile_id
+  userId: string;    // auth user_id — matches appointment.doctor_id
   firstName: string;
   lastName: string;
   specialization: string;
@@ -126,6 +127,7 @@ export function transformDoctorFull(raw: DoctorProfileFull): DoctorCard {
 
   return {
     id: raw.doctor_profile_id,
+    userId: raw.user_id,           // ← auth user_id; matches appointment.doctor_id
     firstName,
     lastName,
     specialization: raw.specialization,

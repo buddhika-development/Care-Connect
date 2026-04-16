@@ -5,9 +5,25 @@ const AppointmentController = {
   async createAppointment(req, res, next) {
     try {
       const { userId } = req.user;
-      const { doctorId, slotId, scheduledAt, channelingMode, consultationFee } = req.body;
+      const { doctorId, slotId, scheduledAt, channelingMode, consultationFee } =
+        req.body;
 
-      AppointmentValidator.validateCreateAppointment({ doctorId, slotId, scheduledAt, channelingMode, consultationFee});
+      AppointmentValidator.validateCreateAppointment({
+        doctorId,
+        slotId,
+        scheduledAt,
+        channelingMode,
+        consultationFee,
+      });
+
+      console.log("Creating appointment with data:", {
+        userId,
+        doctorId,
+        slotId,
+        scheduledAt,
+        channelingMode,
+        consultationFee,
+      });
 
       const appointment = await AppointmentService.createAppointment(
         userId,
@@ -15,8 +31,10 @@ const AppointmentController = {
         slotId,
         scheduledAt,
         channelingMode,
-        consultationFee
+        consultationFee,
       );
+
+      console.log("Created appointment:", appointment);
 
       return res.status(201).json({
         success: true,
@@ -24,6 +42,7 @@ const AppointmentController = {
         data: appointment,
       });
     } catch (error) {
+      console.error("Error creating appointment:", error);
       next(error);
     }
   },
@@ -34,7 +53,7 @@ const AppointmentController = {
 
       const appointments = await AppointmentService.getAppointmentsByUser(
         userId,
-        role
+        role,
       );
 
       return res.status(200).json({
@@ -55,7 +74,7 @@ const AppointmentController = {
       const appointment = await AppointmentService.getAppointmentById(
         appointmentId,
         userId,
-        role
+        role,
       );
 
       return res.status(200).json({

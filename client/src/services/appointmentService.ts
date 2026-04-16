@@ -36,49 +36,58 @@ export function transformAppointment(
     date,
     startTime,
     endTime,
-    consultationType: raw.channelling_mode,
+    consultationType: raw.channeling_mode,  // DB: channeling_mode (single 'l')
     status: raw.appointment_status,
     fee: raw.consultation_fee,
-    paymentId: '',
+    paymentId: raw.payment_id ?? '',
   };
 }
 
-// ─── Real API: Get my appointments ───────────────────────────────────────────
+// ─── Real API: Get my raw appointments (no enrichment) ──────────────────────────
+export async function getRawAppointments(): Promise<AppointmentRaw[]> {
+  const { data } = await apiClient.get('/api/appointments');
+  return data.data ?? [];
+}
+
+// ─── Legacy: Get my appointments (enriched) ──────────────────────────────
 export async function getAppointments(
   _userId: string,
   _role: 'patient' | 'doctor',
   doctorsMap: Map<string, DoctorCard> = new Map()
 ): Promise<Appointment[]> {
-  const { data } = await apiClient.get('/api/appointments');
-  const rawList: AppointmentRaw[] = data.data ?? [];
-  return rawList.map((r) => transformAppointment(r, doctorsMap));
+  const raw = await getRawAppointments();
+  return raw.map((r) => transformAppointment(r, doctorsMap));
 }
 
-// ─── Real API: Create appointment ─────────────────────────────────────────────
+// ─── Real API: Create appointment ──────────────────────────────────────────
 export async function createAppointment(req: BookingRequest): Promise<AppointmentRaw> {
   const { data } = await apiClient.post('/api/appointments', {
     doctorId: req.doctorId,
     slotId: req.slotId,
-    reason: req.reason ?? '',
+    scheduledAt: req.scheduledAt,
+    channelingMode: req.channelingMode,
+    consultationFee: req.consultationFee,
   });
   return data.data as AppointmentRaw;
 }
 
-// ─── Real API: Cancel appointment ─────────────────────────────────────────────
+// ─── Real API: Cancel appointment ──────────────────────────────────────────
+// Backend no longer accepts a body for cancel
 export async function cancelAppointment(appointmentId: string): Promise<void> {
-  await apiClient.patch(`/api/appointments/${appointmentId}/cancel`, {
-    cancelReason: 'Patient cancelled',
-  });
+  await apiClient.patch(`/api/appointments/${appointmentId}/cancel`);
 }
 
 // ─── Real API: Reschedule appointment ─────────────────────────────────────────
 export async function rescheduleAppointment(
   appointmentId: string,
   newSlotId: string,
-  _newDate: string
+  newScheduledAt: string,
+  newChannelingMode: string
 ): Promise<AppointmentRaw> {
   const { data } = await apiClient.patch(`/api/appointments/${appointmentId}/reschedule`, {
     newSlotId,
+    newScheduledAt,
+    newChannelingMode,
   });
   return data.data as AppointmentRaw;
 }
