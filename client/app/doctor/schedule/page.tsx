@@ -49,6 +49,7 @@ export default function DoctorSchedulePage() {
       startTime: data.startTime,
       endTime: data.endTime,
       slotDuration: data.slotDuration,
+      consultationFee: 0, // TODO: add a fee field to the form
     }, {
       onSuccess: () => {
         toast.success('Availability saved successfully!');

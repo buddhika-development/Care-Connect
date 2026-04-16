@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Heart, Calendar, Video, Brain, Shield, ChevronRight,
-  Star, Stethoscope, Clock, Users, CheckCircle, ArrowRight, Zap,
+  Star, Stethoscope, Clock, CheckCircle, ArrowRight, Zap,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -119,14 +118,6 @@ const HOW_IT_WORKS = [
 
 export default function HomePage() {
   const { user, isAuthenticated } = useAuth();
-  const router = useRouter();
-
-  // If already logged in, redirect to their dashboard
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      router.replace(`/${user.role}/dashboard`);
-    }
-  }, [isAuthenticated, user, router]);
 
   return (
     <main className="min-h-screen bg-background font-inter overflow-x-hidden">
@@ -145,15 +136,26 @@ export default function HomePage() {
             <a href="#testimonials" className="hover:text-primary transition-colors">Testimonials</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-primary transition-colors">
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold transition-all shadow-sm"
-            >
-              Get started
-            </Link>
+            {isAuthenticated && user ? (
+              <Link
+                href={`/${user.role}/dashboard`}
+                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold transition-all shadow-sm"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-primary transition-colors">
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold transition-all shadow-sm"
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -187,24 +189,36 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-base transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-            >
-              Start for free
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl border-2 border-border hover:border-primary bg-card text-text font-bold text-base transition-all hover:bg-primary-50"
-            >
-              Sign in to your account
-            </Link>
+            {isAuthenticated && user ? (
+              <Link
+                href={`/${user.role}/dashboard`}
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-base transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              >
+                Go to my Dashboard
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-base transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                >
+                  Start for free
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl border-2 border-border hover:border-primary bg-card text-text font-bold text-base transition-all hover:bg-primary-50"
+                >
+                  Sign in to your account
+                </Link>
+              </>
+            )}
           </div>
 
           <p className="text-xs text-text-muted mt-4">No credit card required · Free for patients</p>
 
-          {/* Hero card mockup */}
+          {/* Hero card — dynamic: shows real user info if logged in, generic preview if not */}
           <div className="mt-14 relative">
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80 z-10 pointer-events-none rounded-3xl" />
             <div className="bg-card border border-border rounded-3xl shadow-2xl p-6 text-left max-w-2xl mx-auto">
@@ -213,19 +227,28 @@ export default function HomePage() {
                   <Heart className="w-6 h-6 text-white fill-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-text">Good afternoon, Kavindi</p>
-                  <p className="text-sm text-text-secondary">Here&apos;s your health summary for today</p>
+                  {isAuthenticated && user ? (
+                    <>
+                      <p className="font-bold text-text">Welcome back, {user.firstName}!</p>
+                      <p className="text-sm text-text-secondary capitalize">{user.role} account · {user.email}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-bold text-text">Good afternoon, Future Patient</p>
+                      <p className="text-sm text-text-secondary">Your health journey starts here</p>
+                    </>
+                  )}
                 </div>
                 <div className="ml-auto flex items-center gap-1.5 text-xs text-success font-medium bg-success-light px-2.5 py-1 rounded-full">
                   <span className="w-1.5 h-1.5 bg-success rounded-full" />
-                  All good
+                  {isAuthenticated ? 'Active' : 'All good'}
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { icon: Calendar, label: 'Upcoming', value: '2 appointments', color: 'text-primary', bg: 'bg-primary-50' },
-                  { icon: Clock, label: 'Next visit', value: 'Tomorrow, 10AM', color: 'text-accent', bg: 'bg-orange-50' },
-                  { icon: CheckCircle, label: 'Prescriptions', value: '3 active', color: 'text-success', bg: 'bg-success-light' },
+                  { icon: Calendar, label: 'Book', value: 'Appointments', color: 'text-primary', bg: 'bg-primary-50' },
+                  { icon: Clock, label: 'Instant', value: 'Confirmation', color: 'text-accent', bg: 'bg-orange-50' },
+                  { icon: CheckCircle, label: 'Digital', value: 'Prescriptions', color: 'text-success', bg: 'bg-success-light' },
                 ].map((item) => (
                   <div key={item.label} className="p-3 bg-secondary rounded-xl">
                     <div className={`w-8 h-8 ${item.bg} rounded-lg flex items-center justify-center mb-2`}>

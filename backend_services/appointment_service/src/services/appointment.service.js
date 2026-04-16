@@ -9,14 +9,20 @@ import {
 
 const AppointmentService = {
   async createAppointment(patientId, doctorId, slotId, reason) {
-    // TEMPORARY MOCK — remove when Doctor Service is ready
-    const slotData = {
-      slot_date: "2026-04-26",
-      slot_start_time: "10:00:00",
-      slot_end_time: "10:30:00",
-      channelling_mode: "online",
-      consultation_fee: 1500,
-    };
+    // Step 1 — Fetch real slot details from doctor service
+    let slotData;
+    try {
+      slotData = await getSlotDetails(slotId);
+    } catch (err) {
+      throw new AppError(
+        `Could not retrieve slot details: ${err.message}`,
+        502
+      );
+    }
+
+    if (!slotData) {
+      throw new NotFoundError("Slot not found.");
+    }
 
     // Step 2 — Check slot availability
     const existingAppointment =

@@ -10,7 +10,7 @@ const router = Router();
 router.post(
   "/",
   extractUser,
-  authorize("patient"),
+  authorize("patient", "doctor"),
   AppointmentController.createAppointment
 );
 
@@ -38,7 +38,7 @@ router.patch(
 router.patch(
   "/:appointmentId/reschedule",
   extractUser,
-  authorize("patient"),
+  authorize("patient", "doctor" ),
   AppointmentStatusController.rescheduleAppointment
 );
 

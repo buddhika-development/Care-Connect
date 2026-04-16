@@ -1,229 +1,129 @@
-import { Appointment, BookingRequest } from '@/types/appointment';
+import { apiClient } from '@/lib/axios';
+import { Appointment, AppointmentRaw, BookingRequest } from '@/types/appointment';
 import { AppointmentStatus } from '@/types/common';
+import { DoctorCard } from '@/types/doctor';
 
-const MOCK_APPOINTMENTS: Appointment[] = [
-  {
-    id: 'apt-001',
-    patientId: 'patient-001',
-    patientName: 'Kavindi Perera',
-    patientImage: null,
-    doctorId: 'doc-001',
-    doctorName: 'Dr. Suresh Fernando',
-    doctorSpecialization: 'General Physician',
-    doctorImage: null,
-    date: '2025-04-20',
-    startTime: '10:00',
-    endTime: '10:30',
-    consultationType: 'physical',
-    status: 'confirmed',
-    fee: 2000,
-    paymentId: 'pay-001',
-  },
-  {
-    id: 'apt-002',
-    patientId: 'patient-001',
-    patientName: 'Kavindi Perera',
-    patientImage: null,
-    doctorId: 'doc-002',
-    doctorName: 'Dr. Nirmala Jayawardena',
-    doctorSpecialization: 'Pulmonologist',
-    doctorImage: null,
-    date: '2025-04-22',
-    startTime: '14:30',
-    endTime: '15:00',
-    consultationType: 'online',
-    status: 'confirmed',
-    fee: 3500,
-    paymentId: 'pay-002',
-  },
-  {
-    id: 'apt-003',
-    patientId: 'patient-001',
-    patientName: 'Kavindi Perera',
-    patientImage: null,
-    doctorId: 'doc-003',
-    doctorName: 'Dr. Chaminda Rajapaksa',
-    doctorSpecialization: 'Cardiologist',
-    doctorImage: null,
-    date: '2025-03-10',
-    startTime: '09:00',
-    endTime: '09:30',
-    consultationType: 'physical',
-    status: 'completed',
-    fee: 4500,
-    paymentId: 'pay-003',
-  },
-  {
-    id: 'apt-004',
-    patientId: 'patient-001',
-    patientName: 'Kavindi Perera',
-    patientImage: null,
-    doctorId: 'doc-004',
-    doctorName: 'Dr. Dilani Wickramasinghe',
-    doctorSpecialization: 'Dermatologist',
-    doctorImage: null,
-    date: '2025-02-15',
-    startTime: '11:00',
-    endTime: '11:30',
-    consultationType: 'online',
-    status: 'cancelled',
-    fee: 3000,
-    paymentId: 'pay-004',
-  },
-  {
-    id: 'apt-005',
-    patientId: 'patient-001',
-    patientName: 'Kavindi Perera',
-    patientImage: null,
-    doctorId: 'doc-001',
-    doctorName: 'Dr. Suresh Fernando',
-    doctorSpecialization: 'General Physician',
-    doctorImage: null,
-    date: '2025-04-16',
-    startTime: '09:30',
-    endTime: '10:00',
-    consultationType: 'online',
-    status: 'ongoing',
-    fee: 2000,
-    paymentId: 'pay-005',
-  },
-];
+// ─── Transform raw appointment DB record → frontend Appointment ───────────────
+export function transformAppointment(
+  raw: AppointmentRaw,
+  doctorsMap: Map<string, DoctorCard>
+): Appointment {
+  // Parse scheduled_at into date + startTime
+  const scheduledDate = new Date(raw.scheduled_at);
+  const date = raw.scheduled_at.slice(0, 10); // "YYYY-MM-DD"
+  const startTime = raw.scheduled_at.slice(11, 16); // "HH:MM"
 
-// Doctor-view appointments by date
-const MOCK_DOCTOR_DAY_APPOINTMENTS: Record<string, Appointment[]> = {
-  '2025-04-21': [
-    {
-      id: 'apt-d-001',
-      patientId: 'pat-001',
-      patientName: 'Kavindi Perera',
-      patientImage: null,
-      doctorId: 'doc-001',
-      doctorName: 'Dr. Suresh Fernando',
-      doctorSpecialization: 'General Physician',
-      doctorImage: null,
-      date: '2025-04-21',
-      startTime: '09:00',
-      endTime: '09:30',
-      consultationType: 'physical',
-      status: 'confirmed',
-      fee: 2000,
-      paymentId: 'pay-d-001',
-    },
-    {
-      id: 'apt-d-002',
-      patientId: 'pat-002',
-      patientName: 'Nuwan Karunarathne',
-      patientImage: null,
-      doctorId: 'doc-001',
-      doctorName: 'Dr. Suresh Fernando',
-      doctorSpecialization: 'General Physician',
-      doctorImage: null,
-      date: '2025-04-21',
-      startTime: '10:00',
-      endTime: '10:30',
-      consultationType: 'physical',
-      status: 'confirmed',
-      fee: 2000,
-      paymentId: 'pay-d-002',
-    },
-    {
-      id: 'apt-d-003',
-      patientId: 'pat-003',
-      patientName: 'Sachini Bandara',
-      patientImage: null,
-      doctorId: 'doc-001',
-      doctorName: 'Dr. Suresh Fernando',
-      doctorSpecialization: 'General Physician',
-      doctorImage: null,
-      date: '2025-04-21',
-      startTime: '11:30',
-      endTime: '12:00',
-      consultationType: 'physical',
-      status: 'confirmed',
-      fee: 2000,
-      paymentId: 'pay-d-003',
-    },
-  ],
-};
+  // Derive endTime by adding slot duration (30 min default)
+  const endDate = new Date(scheduledDate.getTime() + 30 * 60 * 1000);
+  const endTime = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
 
-// TODO: Replace with real API endpoint
-export async function getAppointments(userId: string, role: 'patient' | 'doctor'): Promise<Appointment[]> {
-  await new Promise((r) => setTimeout(r, 600));
-  void userId; void role;
-  return MOCK_APPOINTMENTS;
-}
+  // Enrich with doctor info from the cached doctors list
+  const doctor = doctorsMap.get(raw.doctor_id);
+  const doctorName = doctor
+    ? `Dr. ${doctor.firstName} ${doctor.lastName}`
+    : 'Unknown Doctor';
+  const doctorSpecialization = doctor?.specialization ?? '';
 
-// TODO: Replace with real API endpoint
-export async function getAppointmentById(appointmentId: string): Promise<Appointment | null> {
-  await new Promise((r) => setTimeout(r, 400));
-  return MOCK_APPOINTMENTS.find(a => a.id === appointmentId)
-    ?? MOCK_DOCTOR_DAY_APPOINTMENTS['2025-04-21']?.find(a => a.id === appointmentId)
-    ?? null;
-}
-
-// TODO: Replace with real API endpoint
-export async function createAppointment(data: BookingRequest): Promise<Appointment> {
-  await new Promise((r) => setTimeout(r, 800));
   return {
-    id: `apt-${Date.now()}`,
-    patientId: 'patient-001',
-    patientName: 'Kavindi Perera',
+    id: raw.id,
+    patientId: raw.patient_id,
+    patientName: '',
     patientImage: null,
-    doctorId: data.doctorId,
-    doctorName: 'Dr. Suresh Fernando',
-    doctorSpecialization: 'General Physician',
+    doctorId: raw.doctor_id,
+    doctorName,
+    doctorSpecialization,
     doctorImage: null,
-    date: data.date,
-    startTime: '09:00',
-    endTime: '09:30',
-    consultationType: data.consultationType,
-    status: 'pending',
-    fee: 2000,
+    date,
+    startTime,
+    endTime,
+    consultationType: raw.channelling_mode,
+    status: raw.appointment_status,
+    fee: raw.consultation_fee,
     paymentId: '',
   };
 }
 
-// TODO: Replace with real API endpoint
+// ─── Real API: Get my appointments ───────────────────────────────────────────
+export async function getAppointments(
+  _userId: string,
+  _role: 'patient' | 'doctor',
+  doctorsMap: Map<string, DoctorCard> = new Map()
+): Promise<Appointment[]> {
+  const { data } = await apiClient.get('/api/appointments');
+  const rawList: AppointmentRaw[] = data.data ?? [];
+  return rawList.map((r) => transformAppointment(r, doctorsMap));
+}
+
+// ─── Real API: Create appointment ─────────────────────────────────────────────
+export async function createAppointment(req: BookingRequest): Promise<AppointmentRaw> {
+  const { data } = await apiClient.post('/api/appointments', {
+    doctorId: req.doctorId,
+    slotId: req.slotId,
+    reason: req.reason ?? '',
+  });
+  return data.data as AppointmentRaw;
+}
+
+// ─── Real API: Cancel appointment ─────────────────────────────────────────────
 export async function cancelAppointment(appointmentId: string): Promise<void> {
-  await new Promise((r) => setTimeout(r, 600));
-  void appointmentId;
+  await apiClient.patch(`/api/appointments/${appointmentId}/cancel`, {
+    cancelReason: 'Patient cancelled',
+  });
 }
 
-// TODO: Replace with real API endpoint
-export async function rescheduleAppointment(appointmentId: string, newSlotId: string, newDate: string): Promise<Appointment> {
-  await new Promise((r) => setTimeout(r, 700));
-  void newSlotId;
-  const apt = MOCK_APPOINTMENTS.find(a => a.id === appointmentId)!;
-  return { ...apt, date: newDate, status: 'confirmed' };
+// ─── Real API: Reschedule appointment ─────────────────────────────────────────
+export async function rescheduleAppointment(
+  appointmentId: string,
+  newSlotId: string,
+  _newDate: string
+): Promise<AppointmentRaw> {
+  const { data } = await apiClient.patch(`/api/appointments/${appointmentId}/reschedule`, {
+    newSlotId,
+  });
+  return data.data as AppointmentRaw;
 }
 
-// TODO: Replace with real API endpoint
+// ─── Real API: Get appointment by ID ──────────────────────────────────────────
+export async function getAppointmentById(appointmentId: string): Promise<AppointmentRaw | null> {
+  try {
+    const { data } = await apiClient.get(`/api/appointments/${appointmentId}`);
+    return data.data as AppointmentRaw;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Mocked: Doctor-side session actions ──────────────────────────────────────
+// TODO: wire up when doctor dashboard integration starts
+
 export async function startSession(appointmentId: string): Promise<void> {
-  await new Promise((r) => setTimeout(r, 500));
-  void appointmentId;
+  await apiClient.patch(`/api/appointments/${appointmentId}/start`);
 }
 
-// TODO: Replace with real API endpoint
 export async function completeSession(
   appointmentId: string,
   prescription: { medicines: unknown[]; notes: string }
 ): Promise<void> {
-  await new Promise((r) => setTimeout(r, 700));
-  void appointmentId; void prescription;
+  await apiClient.patch(`/api/appointments/${appointmentId}/complete`, { prescription });
 }
 
-// TODO: Replace with real API endpoint
+// ─── Mocked: Doctor day appointments (out of scope) ───────────────────────────
+const MOCK_DOCTOR_DAY_APPOINTMENTS: Record<string, Appointment[]> = {
+  '2025-04-21': [
+    {
+      id: 'apt-d-001', patientId: 'pat-001', patientName: 'Kavindi Perera', patientImage: null,
+      doctorId: 'doc-001', doctorName: 'Dr. Suresh Fernando', doctorSpecialization: 'General Physician', doctorImage: null,
+      date: '2025-04-21', startTime: '09:00', endTime: '09:30',
+      consultationType: 'physical', status: 'confirmed' as AppointmentStatus, fee: 2000, paymentId: 'pay-d-001',
+    },
+  ],
+};
+
 export async function getDoctorDayAppointments(doctorId: string, date: string): Promise<Appointment[]> {
-  await new Promise((r) => setTimeout(r, 500));
   void doctorId;
   return MOCK_DOCTOR_DAY_APPOINTMENTS[date] ?? [];
 }
 
-// TODO: Replace with real API endpoint
 export async function getAdminAppointments(): Promise<Appointment[]> {
-  await new Promise((r) => setTimeout(r, 600));
-  return [
-    ...MOCK_APPOINTMENTS,
-    ...(MOCK_DOCTOR_DAY_APPOINTMENTS['2025-04-21'] ?? []),
-  ];
+  return Object.values(MOCK_DOCTOR_DAY_APPOINTMENTS).flat();
 }

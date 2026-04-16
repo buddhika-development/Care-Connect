@@ -10,9 +10,8 @@ const createProxy = (target, pathRewrite = null) => {
     target,
     changeOrigin: true,
     on: {
-      proxyReq: (proxyReq, req, res) => {
-        //fixRequestBody(proxyReq, req, res);
-
+      proxyReq: (proxyReq, req) => {
+        // Inject gateway identity headers so downstream services trust the request
         if (req.user) {
           proxyReq.setHeader("x-user-id", req.user.userId);
           proxyReq.setHeader("x-user-email", req.user.email);
@@ -20,8 +19,25 @@ const createProxy = (target, pathRewrite = null) => {
           proxyReq.setHeader("x-gateway-secret", process.env.GATEWAY_SECRET);
         }
 
-        fixRequestBody(proxyReq, req, res);
+        fixRequestBody(proxyReq, req);
       },
+
+      // ── Strip ALL CORS headers from downstream responses ──────────────────
+      // Each microservice runs its own cors() middleware and responds with
+      // "Access-Control-Allow-Origin: *".  That wildcard overrides the gateway's
+      // own CORS header (which correctly sets the specific allowed origin) before
+      // it reaches the browser, causing the browser to block the request.
+      // Removing them here means Express's cors() on the gateway is the SOLE
+      // authority on CORS — exactly what we want.
+      proxyRes: (proxyRes) => {
+        delete proxyRes.headers["access-control-allow-origin"];
+        delete proxyRes.headers["access-control-allow-credentials"];
+        delete proxyRes.headers["access-control-allow-methods"];
+        delete proxyRes.headers["access-control-allow-headers"];
+        delete proxyRes.headers["access-control-expose-headers"];
+        delete proxyRes.headers["access-control-max-age"];
+      },
+
       error: (err, req, res) => {
         console.error("Proxy error:", err.message);
         res.status(502).json({
@@ -55,7 +71,7 @@ const registerProxyRoutes = (app) => {
   app.use(
     "/api/patients",
     authenticate,
-    authorize("patient", "admin"),
+    authorize("patient", "doctor", "admin"),
     createProxy(services.PATIENT, (path) =>
       path === "/" ? "/api/patients" : "/api/patients" + path,
     ),
@@ -65,7 +81,7 @@ const registerProxyRoutes = (app) => {
   app.use(
     "/api/doctors",
     authenticate,
-    authorize("doctor", "admin"),
+    authorize("doctor", "admin", "patient"),
     createProxy(services.DOCTOR, (path) =>
       path === "/" ? "/api/doctors" : "/api/doctors" + path,
     ),
@@ -85,7 +101,7 @@ const registerProxyRoutes = (app) => {
   app.use(
     "/api/payments",
     authenticate,
-    authorize("patient", "admin"),
+    authorize("patient", "doctor", "admin"),
     createProxy(services.PAYMENT, (path) =>
       path === "/" ? "/api/payments" : "/api/payments" + path,
     ),

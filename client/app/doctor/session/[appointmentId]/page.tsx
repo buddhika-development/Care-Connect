@@ -74,14 +74,17 @@ export default function DoctorSessionPage() {
 
   if (isLoading) return <SessionSkeleton />;
 
-  const isOnline = appointment?.consultationType === 'online';
+  const isOnline = appointment?.channelling_mode === 'online';
+  // Derive date and startTime from scheduled_at
+  const appointmentDate = appointment?.scheduled_at?.slice(0, 10) ?? '';
+  const appointmentTime = appointment?.scheduled_at?.slice(11, 16) ?? '';
   const inputClass = 'w-full px-3 py-2 rounded-lg border border-border bg-background text-text text-xs focus:outline-none focus:ring-1 focus:ring-primary';
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <button onClick={() => router.push(`/doctor/appointments/${appointment?.date}`)} className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-primary transition-colors">
+        <button onClick={() => router.push(`/doctor/appointments/${appointmentDate}`)} className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-primary transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
         <div className="flex items-center gap-2">
@@ -118,8 +121,8 @@ export default function DoctorSessionPage() {
 
             {appointment && (
               <div className="space-y-2 text-sm mb-4 pb-4 border-b border-border">
-                <div className="flex justify-between"><span className="text-text-muted">Date</span><span className="font-medium text-text">{formatDate(appointment.date)}</span></div>
-                <div className="flex justify-between"><span className="text-text-muted">Time</span><span className="font-medium text-text">{formatTime(appointment.startTime)}</span></div>
+                <div className="flex justify-between"><span className="text-text-muted">Date</span><span className="font-medium text-text">{formatDate(appointmentDate)}</span></div>
+                <div className="flex justify-between"><span className="text-text-muted">Time</span><span className="font-medium text-text">{formatTime(appointmentTime)}</span></div>
                 <div className="flex justify-between"><span className="text-text-muted">Type</span><span className={`font-medium ${isOnline ? 'text-primary' : 'text-accent'}`}>{isOnline ? '📹 Online' : '🏥 Physical'}</span></div>
                 <div className="flex justify-between items-center"><span className="text-text-muted">Status</span><StatusBadge status="ongoing" /></div>
               </div>

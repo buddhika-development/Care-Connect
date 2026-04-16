@@ -6,10 +6,12 @@ import {
 } from '@/services/doctorService';
 import { useAuth } from '@/context/AuthContext';
 import { DoctorAvailability } from '@/types/doctor';
+import { getAccessToken } from '@/lib/axios';
 
 export const doctorKeys = {
   profile: (userId: string) => ['doctor', 'profile', userId] as const,
-  list: (query?: string, spec?: string) => ['doctor', 'list', query, spec] as const,
+  // specialization is a backend filter; name search is done client-side
+  list: (spec?: string) => ['doctor', 'list', spec ?? ''] as const,
   availability: (doctorId: string) => ['doctor', 'availability', doctorId] as const,
   daySchedules: (doctorId: string) => ['doctor', 'day-schedules', doctorId] as const,
   sessionPatient: (patientId: string) => ['doctor', 'session-patient', patientId] as const,
@@ -39,10 +41,26 @@ export function useUpdateDoctorProfile() {
   });
 }
 
-export function useDoctors(query?: string, specialization?: string) {
+/**
+ * Fetch all doctors. Specialization is backend-filtered (query param).
+ * Name search is intentionally NOT a param here — do it client-side in the page.
+ *
+ * Only fires after:
+ * a) Auth context has finished restoring the session (isLoading = false), AND
+ * b) An access token is present in memory
+ * This prevents a 401 flash on mount before the silent token refresh completes.
+ */
+export function useDoctors(specialization?: string) {
+  const { isLoading: authLoading } = useAuth();
+  const hasToken = !!getAccessToken();
+
   return useQuery({
-    queryKey: doctorKeys.list(query, specialization),
-    queryFn: () => getDoctors(query, specialization),
+    queryKey: doctorKeys.list(specialization),
+    queryFn: () => getDoctors(specialization),
+    // Wait until auth is resolved AND we have a token
+    enabled: !authLoading && hasToken,
+    staleTime: 5 * 60 * 1000, // cache for 5 min — used for doctor-name enrichment in appointments
+    retry: 2,
   });
 }
 

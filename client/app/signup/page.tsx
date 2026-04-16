@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Eye, EyeOff, Heart, Lock, Mail, User, ArrowRight,
-  Loader2, CheckCircle2, Info,
+  Loader2, CheckCircle2, Info, ArrowLeft,
 } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { registerPatientApi } from '@/services/authService';
@@ -189,6 +189,13 @@ export default function SignupPage() {
           </div>
 
           <div className="mb-8">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-primary transition-colors mb-6 group"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              Back to Home
+            </Link>
             <h1 className="text-3xl font-bold text-text mb-2">Create your account</h1>
             <p className="text-text-secondary text-sm">Free forever for patients. No credit card required.</p>
           </div>
