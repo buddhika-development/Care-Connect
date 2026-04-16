@@ -1,5 +1,4 @@
 import AppointmentRepository from "../repositories/appointment.repository.js";
-import { getSlotDetails } from "../utils/doctorServiceHelper.js";
 import {
   AppError,
   ForbiddenError,
@@ -8,27 +7,8 @@ import {
 } from "../utils/errors.utils.js";
 
 const AppointmentService = {
-  async createAppointment(patientId, doctorId, slotId) {
-    // Step 1 — Get slot details from Doctor Service
-    let slotData;
-    try {
-      slotData = await getSlotDetails(slotId);
-    } catch (error) {
-      throw new AppError("Failed to fetch slot details. Please try again.", 503);
-    }
-
-    if (!slotData) throw new NotFoundError("Slot");
-
-    // Extract nested fields from response
-    const availability = slotData.doctor_availability;
-    const channelingMode = availability.channeling_mode;
-    const consultationFee = availability.consultation_fee;
-    const scheduledAt = new Date(
-      `${slotData.slot_date}T${slotData.slot_start_time}`
-    );
-    const appointmentDate = slotData.slot_date;
-
-    // Step 2 — Check slot availability
+  async createAppointment(patientId, doctorId, slotId, scheduledAt, channelingMode, consultationFee) {
+    // Step 1 — Check slot availability
     const existingAppointment =
       await AppointmentRepository.findBySlotId(slotId);
     if (existingAppointment) {
@@ -44,35 +24,20 @@ const AppointmentService = {
       }
     }
 
-    // Step 3 — Validate scheduled_at is not in the past
-    if (scheduledAt < new Date()) {
+    // Step 2 — Validate scheduled_at is not in the past
+    const scheduledAtDate = new Date(scheduledAt);
+    if (scheduledAtDate < new Date()) {
       throw new InvalidInputError("Cannot book an appointment in the past.");
     }
 
-    // Step 4 — Check same day conflicts for patient
-    const sameDay = await AppointmentRepository.findByPatientIdAndDate(
-      patientId,
-      appointmentDate
-    );
-    const activeSameDayAppointments = sameDay.filter((a) =>
-      ["pending", "confirmed", "ongoing", "rescheduled"].includes(
-        a.appointment_status
-      )
-    );
-    if (activeSameDayAppointments.length > 0) {
-      throw new InvalidInputError(
-        "You already have an appointment on this day."
-      );
-    }
-
-    // Step 5 — Create appointment
+    // Step 3 — Create appointment
     const appointment = await AppointmentRepository.create({
       patient_id: patientId,
       doctor_id: doctorId,
       slot_id: slotId,
       channeling_mode: channelingMode,
       consultation_fee: consultationFee,
-      scheduled_at: scheduledAt.toISOString(),
+      scheduled_at: scheduledAtDate.toISOString(),
       appointment_status: "pending",
       payment_status: "pending",
     });

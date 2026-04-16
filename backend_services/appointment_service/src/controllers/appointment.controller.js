@@ -5,14 +5,17 @@ const AppointmentController = {
   async createAppointment(req, res, next) {
     try {
       const { userId } = req.user;
-      const { doctorId, slotId } = req.body;
+      const { doctorId, slotId, scheduledAt, channelingMode, consultationFee } = req.body;
 
-      AppointmentValidator.validateCreateAppointment({ doctorId, slotId });
+      AppointmentValidator.validateCreateAppointment({ doctorId, slotId, scheduledAt, channelingMode, consultationFee});
 
       const appointment = await AppointmentService.createAppointment(
         userId,
         doctorId,
-        slotId
+        slotId,
+        scheduledAt,
+        channelingMode,
+        consultationFee
       );
 
       return res.status(201).json({

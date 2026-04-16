@@ -78,20 +78,7 @@ const AppointmentRepository = {
     if (error) throw new DatabaseError(error.message);
     return data || [];
   },
-
-  async findByPatientIdAndDate(patientId, date) {
-    const { data, error } = await supabase
-      .schema("appointments")
-      .from("appointments")
-      .select("*")
-      .eq("patient_id", patientId)
-      .gte("scheduled_at", `${date}T00:00:00`)
-      .lt("scheduled_at", `${date}T23:59:59`);
-
-    if (error) throw new DatabaseError(error.message);
-    return data || [];
-  },
-
+  
   async findPendingExpired(cutoffTime) {
     const { data, error } = await supabase
       .schema("appointments")
