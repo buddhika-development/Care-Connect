@@ -8,11 +8,12 @@ import {
 } from "../utils/errors.utils.js";
 import { serviceNames } from "../constant/serviceNames.constant.js";
 import { updateSlotBookingStatus, getSlotDetails } from "../utils/doctorServiceHelper.js";
+import { requestRefund } from "../utils/paymentServiceHelper.js";
 
 const TELEMEDICINE_SERVICE_URL = process.env.TELEMEDICINE_SERVICE_URL;
 
 const AppointmentStatusService = {
-  async cancelAppointment(appointmentId, userId, role, cancelReason) {
+  async cancelAppointment(appointmentId, userId, role) {
     const appointment = await AppointmentRepository.findById(appointmentId);
 
     // Ownership check
@@ -40,21 +41,13 @@ const AppointmentStatusService = {
     try {
       await updateSlotBookingStatus(appointment.slot_id, false);
     } catch (error) {
-      throw new AppError(
-        "Failed to release slot. Cancellation aborted.",
-        503
-      );
+      throw new AppError("Failed to release slot. Cancellation aborted.", 503);
     }
 
     // Step 2 — Process refund if payment was made (graceful — can be done manually)
     if (appointment.payment_status === "paid") {
       try {
-        await httpClient.post(
-          process.env.PAYMENT_SERVICE_URL,
-          `/api/internal/payments/${appointment.payment_id}/refund`,
-          serviceNames.APPOINTMENT_SERVICE,
-          { appointmentId }
-        );
+        await requestRefund(appointment.payment_id, appointmentId);
       } catch (error) {
         console.error("Failed to process refund:", error.message);
       }
@@ -81,21 +74,16 @@ const AppointmentStatusService = {
     }
 
     // Step 4 — Cancel appointment
-    return await AppointmentRepository.updateCancelReason(
-      appointmentId,
-      cancelReason
-    );
+    return await AppointmentRepository.cancelAppointment(appointmentId);
   },
 
   async rescheduleAppointment(appointmentId, userId, newSlotId) {
     const appointment = await AppointmentRepository.findById(appointmentId);
 
-    // Ownership check — only patient can reschedule
     if (appointment.patient_id !== userId) {
       throw new ForbiddenError("You do not have access to this appointment.");
     }
 
-    // Status check
     const reschedulableStatuses = ["confirmed", "rescheduled"];
     if (!reschedulableStatuses.includes(appointment.appointment_status)) {
       throw new InvalidInputError(
@@ -103,7 +91,6 @@ const AppointmentStatusService = {
       );
     }
 
-    // Step 1 — Get new slot details (must succeed)
     let newSlotData;
     try {
       newSlotData = await getSlotDetails(newSlotId);
@@ -113,7 +100,6 @@ const AppointmentStatusService = {
 
     if (!newSlotData) throw new NotFoundError("Slot");
 
-    // Step 2 — Check new slot availability
     const existingAppointment =
       await AppointmentRepository.findBySlotId(newSlotId);
     if (existingAppointment) {
@@ -131,7 +117,6 @@ const AppointmentStatusService = {
       }
     }
 
-    // Step 3 — Validate new scheduled_at is not in the past
     const newScheduledAt = new Date(
       `${newSlotData.slot_date}T${newSlotData.slot_start_time}`
     );
@@ -142,22 +127,18 @@ const AppointmentStatusService = {
     const oldMode = appointment.channelling_mode;
     const newMode = newSlotData.channelling_mode;
 
-    // Step 4 — Release old slot (must succeed)
     try {
       await updateSlotBookingStatus(appointment.slot_id, false);
     } catch (error) {
       throw new AppError("Failed to release old slot. Rescheduling aborted.", 503);
     }
 
-    // Step 5 — Book new slot (must succeed)
     try {
       await updateSlotBookingStatus(newSlotId, true);
     } catch (error) {
       throw new AppError("Failed to book new slot. Rescheduling aborted.", 503);
     }
 
-    // Step 6 — Handle telemedicine session based on mode change
-    // online → physical: cancel existing session (must succeed)
     if (oldMode === "online" && newMode === "physical") {
       if (appointment.telemedicine_session_id) {
         try {
@@ -176,7 +157,6 @@ const AppointmentStatusService = {
       }
     }
 
-    // physical → online: create new session (must succeed)
     if (oldMode === "physical" && newMode === "online") {
       try {
         const response = await httpClient.post(
@@ -205,7 +185,6 @@ const AppointmentStatusService = {
       }
     }
 
-    // Step 7 — Update appointment with new slot and mode
     return await AppointmentRepository.updateSlot(
       appointmentId,
       newSlotId,
