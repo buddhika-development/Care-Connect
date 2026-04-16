@@ -6,6 +6,8 @@ export async function InitiatePaymentController(req, res, next) {
 
     const result = await InitiatePaymentUsecase(patientId, req.body);
 
+    console.log("Payment initiation result:", result);
+
     res.status(200).json({
       success: true,
       message: "Payment initiated successfully",

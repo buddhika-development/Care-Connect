@@ -1,20 +1,18 @@
 import { AppointmentStatus, ConsultationType } from './common';
 
-// ─── Raw shape from appointment service DB ────────────────────────────────────
+// ─── Raw shape from appointment service DB ───────────────────────────────────
 export interface AppointmentRaw {
   id: string;
   patient_id: string;
   doctor_id: string;
   slot_id: string;
-  channelling_mode: ConsultationType;
+  channeling_mode: ConsultationType;   // DB column: channeling_mode (single 'l')
   consultation_fee: number;
-  scheduled_at: string;         // ISO datetime e.g. "2026-04-26T10:00:00"
-  reason: string | null;
+  scheduled_at: string;         // ISO datetime e.g. "2026-04-26T10:00:00.000Z"
   appointment_status: AppointmentStatus;
   payment_status: string;
-  cancel_reason: string | null;
+  payment_id: string | null;
   telemedicine_session_id: string | null;
-  prescription_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,7 +41,9 @@ export interface Appointment {
 export interface BookingRequest {
   doctorId: string;
   slotId: string;
-  reason?: string;
+  scheduledAt: string;         // ISO datetime "YYYY-MM-DDTHH:MM:SS"
+  channelingMode: ConsultationType;  // "online" | "physical"
+  consultationFee: number;
 }
 
 export interface SessionPatientInfo {

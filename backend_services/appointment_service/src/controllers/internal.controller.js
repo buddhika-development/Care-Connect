@@ -23,8 +23,10 @@ const InternalController = {
     try {
       const { doctorId, date } = req.params;
 
-      const appointments =
-        await InternalService.getAppointmentsByDoctorAndDate(doctorId, date);
+      const appointments = await InternalService.getAppointmentsByDoctorAndDate(
+        doctorId,
+        date,
+      );
 
       return res.status(200).json({
         success: true,
@@ -57,8 +59,7 @@ const InternalController = {
     try {
       const { slotId } = req.params;
 
-      const appointment =
-        await InternalService.getAppointmentBySlotId(slotId);
+      const appointment = await InternalService.getAppointmentBySlotId(slotId);
 
       return res.status(200).json({
         success: true,
@@ -75,12 +76,18 @@ const InternalController = {
       const { appointmentId } = req.params;
       const { paymentStatus, paymentId } = req.body;
 
+      console.log("Received payment update:", {
+        appointmentId,
+        paymentStatus,
+        paymentId,
+      });
+
       AppointmentValidator.validatePaymentUpdate({ paymentStatus, paymentId });
 
       const appointment = await InternalService.handlePaymentUpdate(
         appointmentId,
         paymentStatus,
-        paymentId
+        paymentId,
       );
 
       return res.status(200).json({
@@ -92,7 +99,6 @@ const InternalController = {
       next(error);
     }
   },
-
 };
 
 export default InternalController;

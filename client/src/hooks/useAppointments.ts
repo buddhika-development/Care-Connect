@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  getRawAppointments, transformAppointment,
   getAppointments, createAppointment, cancelAppointment, rescheduleAppointment,
   startSession, completeSession, getDoctorDayAppointments, getAdminAppointments, getAppointmentById,
 } from '@/services/appointmentService';
@@ -16,28 +18,45 @@ export const appointmentKeys = {
 };
 
 /**
- * Build a doctor-id → DoctorCard map from the cached doctors list.
- * Used to enrich raw appointments with doctor name + specialization.
+ * Build a userId → DoctorCard map from the cached doctors list.
+ * Appointments store doctor_id = the doctor's auth user_id,
+ * so we MUST key by userId (not the profile id) for the lookup to work.
  */
 function buildDoctorsMap(doctors: DoctorCard[] | undefined): Map<string, DoctorCard> {
   const map = new Map<string, DoctorCard>();
   if (!doctors) return map;
-  for (const d of doctors) map.set(d.id, d);
+  for (const d of doctors) map.set(d.userId, d);  // key by auth user_id
   return map;
 }
 
 export function useAppointments() {
   const { user } = useAuth();
-  // Load doctors list so we can enrich appointment records with doctor names
-  const { data: doctors } = useDoctors();
-  const doctorsMap = buildDoctorsMap(doctors);
 
-  return useQuery({
+  // 1. Fetch doctors — needed to resolve doctor names
+  const { data: doctors } = useDoctors();
+
+  // 2. Fetch raw appointments — no map dependency, so this caches cleanly
+  const rawQuery = useQuery({
     queryKey: appointmentKeys.list(user?.id ?? '', user?.role ?? ''),
-    queryFn: () => getAppointments(user!.id, user!.role as 'patient' | 'doctor', doctorsMap),
+    queryFn: getRawAppointments,
     enabled: !!user,
+    staleTime: 30_000,
   });
+
+  // 3. Build the userId→DoctorCard map (re-memos when doctors change)
+  const doctorsMap = useMemo(() => buildDoctorsMap(doctors), [doctors]);
+
+  // 4. Enrich raw appointments with doctor names reactively
+  //    This re-runs whenever rawQuery.data OR doctors change —
+  //    so even if doctors load after appointments, names resolve instantly.
+  const data = useMemo(() => {
+    if (!rawQuery.data) return undefined;
+    return rawQuery.data.map((r) => transformAppointment(r, doctorsMap));
+  }, [rawQuery.data, doctorsMap]);
+
+  return { ...rawQuery, data };
 }
+
 
 export function useAppointmentById(appointmentId: string) {
   return useQuery({
@@ -73,13 +92,21 @@ export function useCancelAppointment() {
 export function useRescheduleAppointment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ appointmentId, newSlotId, newDate }: { appointmentId: string; newSlotId: string; newDate: string }) =>
-      rescheduleAppointment(appointmentId, newSlotId, newDate),
+    mutationFn: ({
+      appointmentId, newSlotId, newScheduledAt, newChannelingMode,
+    }: {
+      appointmentId: string;
+      newSlotId: string;
+      newScheduledAt: string;
+      newChannelingMode: string;
+    }) =>
+      rescheduleAppointment(appointmentId, newSlotId, newScheduledAt, newChannelingMode),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['appointments'] });
     },
   });
 }
+
 
 export function useStartSession() {
   const qc = useQueryClient();

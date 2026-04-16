@@ -74,7 +74,7 @@ export default function DoctorSessionPage() {
 
   if (isLoading) return <SessionSkeleton />;
 
-  const isOnline = appointment?.channelling_mode === 'online';
+  const isOnline = appointment?.channeling_mode === 'online';
   // Derive date and startTime from scheduled_at
   const appointmentDate = appointment?.scheduled_at?.slice(0, 10) ?? '';
   const appointmentTime = appointment?.scheduled_at?.slice(11, 16) ?? '';

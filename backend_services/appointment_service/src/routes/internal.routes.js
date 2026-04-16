@@ -7,31 +7,36 @@ const router = Router();
 router.get(
   "/appointments/:appointmentId",
   internalMiddleware,
-  InternalController.getAppointmentById
+  InternalController.getAppointmentById,
 );
 
 router.get(
   "/appointments/doctor/:doctorId/date/:date",
   internalMiddleware,
-  InternalController.getAppointmentsByDoctorAndDate
+  InternalController.getAppointmentsByDoctorAndDate,
 );
 
 router.get(
   "/appointments/patient/:patientId",
   internalMiddleware,
-  InternalController.getAppointmentsByPatient
+  InternalController.getAppointmentsByPatient,
 );
 
 router.get(
   "/appointments/slot/:slotId",
   internalMiddleware,
-  InternalController.getAppointmentBySlotId
+  InternalController.getAppointmentBySlotId,
 );
+
+// router.patch(
+//   "/appointments/:appointmentId/payment",
+//   internalMiddleware,
+//   InternalController.handlePaymentUpdate,
+// );
 
 router.patch(
   "/appointments/:appointmentId/payment",
-  internalMiddleware,
-  InternalController.handlePaymentUpdate
+  InternalController.handlePaymentUpdate,
 );
 
 export default router;
