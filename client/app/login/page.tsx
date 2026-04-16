@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, Heart, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Heart, Lock, Mail, ArrowRight, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { AxiosError } from 'axios';
 
@@ -147,6 +147,13 @@ function LoginForm() {
           </div>
 
           <div className="mb-8">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-primary transition-colors mb-6 group"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              Back to Home
+            </Link>
             <h1 className="text-3xl font-bold text-text mb-2">Welcome back</h1>
             <p className="text-text-secondary text-sm">Sign in to your account to continue</p>
           </div>

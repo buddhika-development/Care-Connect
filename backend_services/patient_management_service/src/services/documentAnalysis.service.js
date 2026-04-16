@@ -33,6 +33,7 @@ export async function analyzePatientMedicalDocuments(
       "http://localhost:8002/api/v1/document/analyze",
       {
         documents: documentsArray,
+        userId: userId,
       },
       {
         timeout: 10000, // 10 second timeout for batch processing

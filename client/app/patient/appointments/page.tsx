@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Calendar, Filter, Video, AlertCircle } from 'lucide-react';
+import { Search, Calendar, Video, AlertCircle, Clock, Stethoscope } from 'lucide-react';
 import { useAppointments, useCancelAppointment } from '@/hooks/useAppointments';
 import StatusBadge from '@/components/common/StatusBadge';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -49,7 +49,7 @@ export default function PatientAppointmentsPage() {
   const { data: appointments, isLoading, isError, refetch } = useAppointments();
   const { mutate: cancelAppointment, isPending: cancelling } = useCancelAppointment();
 
-  const filtered = (appointments ?? []).filter(apt => {
+  const filtered = (appointments ?? []).filter((apt) => {
     const matchesStatus = statusFilter === 'all' || apt.status === statusFilter;
     const matchesSearch = !search || apt.doctorName.toLowerCase().includes(search.toLowerCase());
     return matchesStatus && matchesSearch;
@@ -90,12 +90,12 @@ export default function PatientAppointmentsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by doctor name..."
+            placeholder="Search by doctor name…"
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {STATUS_FILTERS.map(f => (
+          {STATUS_FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => setStatusFilter(f.value)}
@@ -109,7 +109,7 @@ export default function PatientAppointmentsPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="space-y-3">{[1,2,3].map(i => <AppointmentSkeleton key={i} />)}</div>
+        <div className="space-y-3">{[1, 2, 3].map((i) => <AppointmentSkeleton key={i} />)}</div>
       ) : isError ? (
         <div className="flex flex-col items-center py-16 text-center">
           <AlertCircle className="w-10 h-10 text-error mb-3" />
@@ -133,21 +133,29 @@ export default function PatientAppointmentsPage() {
               <div key={apt.id} className="bg-card rounded-2xl border border-border shadow-card p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="font-semibold text-text">{apt.doctorName}</p>
-                    <p className="text-sm text-text-secondary">{apt.doctorSpecialization}</p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Stethoscope className="w-4 h-4 text-primary flex-shrink-0" />
+                      <p className="font-semibold text-text">{apt.doctorName || 'Doctor'}</p>
+                    </div>
+                    {apt.doctorSpecialization && (
+                      <p className="text-sm text-text-secondary ml-6">{apt.doctorSpecialization}</p>
+                    )}
                   </div>
                   <StatusBadge status={apt.status} />
                 </div>
 
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-sm text-text-secondary">
-                  <span>{formatDateTime(apt.date, apt.startTime)}</span>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-sm text-text-secondary ml-6">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    {formatDateTime(apt.date, apt.startTime)}
+                  </span>
                   <span className={`font-medium ${isOnline ? 'text-primary' : 'text-accent'}`}>
                     {isOnline ? '📹 Online' : '🏥 Physical'}
                   </span>
-                  <span>{formatCurrency(apt.fee)}</span>
+                  <span className="font-medium text-text">{formatCurrency(apt.fee)}</span>
                 </div>
 
-                {/* Countdown for crashed status */}
+                {/* Countdown for pending status */}
                 {apt.status === 'pending' && apt.countdownExpiry && (
                   <div className="flex items-center gap-2 mb-3 text-xs text-warning bg-warning-light px-3 py-1.5 rounded-lg">
                     <AlertCircle className="w-3.5 h-3.5" />

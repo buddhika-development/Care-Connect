@@ -43,7 +43,10 @@ export const updateMyDoctorProfileController = async (req, res) => {
 // Get all doctors with nested availability and slots from the view
 export const getAllDoctorsWithAvailabilityController = async (req, res) => {
   try {
+    console.log("Received query parameters:", req.query);
     const data = await getAllDoctorsWithAvailabilityService(req.query);
+
+    console.log("Fetched doctors with availability:", data);
 
     return sendSuccess(res, 200, "Doctors fetched successfully", data);
   } catch (error) {

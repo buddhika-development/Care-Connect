@@ -7,11 +7,11 @@ import StatsCard from '@/components/common/StatsCard';
 import EmptyState from '@/components/common/EmptyState';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { Payment } from '@/types/payment';
+import { AdminPayment } from '@/services/paymentService';
 
-type PaymentFilter = 'all' | Payment['status'];
+type PaymentFilter = 'all' | AdminPayment['status'];
 
-const STATUS_CONFIG: Record<Payment['status'], { label: string; className: string; icon: React.ReactNode }> = {
+const STATUS_CONFIG: Record<AdminPayment['status'], { label: string; className: string; icon: React.ReactNode }> = {
   success: { label: 'Success', className: 'bg-success-light text-success', icon: <CheckCircle className="w-3.5 h-3.5" /> },
   failed: { label: 'Failed', className: 'bg-error-light text-error', icon: <XCircle className="w-3.5 h-3.5" /> },
   refunded: { label: 'Refunded', className: 'bg-warning-light text-warning', icon: <RotateCcw className="w-3.5 h-3.5" /> },
