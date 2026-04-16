@@ -7,7 +7,7 @@ import ChatInput from '@/components/chat/ChatInput';
 import ChatMessage from '@/components/chat/ChatMessage';
 import ChatSidebar from '@/components/chat/ChatSidebar';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_AI_ENDPOINT || 'http://localhost:8000/api/v1';
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 interface Message {
@@ -27,11 +27,8 @@ export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
-  // Tracks which session's history we have already loaded to avoid
-  // redundant fetches when only unrelated state changes trigger re-renders.
   const loadedSessionRef = useRef<string | null>(null);
 
-  // ── Dark mode ────────────────────────────────────────────────────────────
   useEffect(() => {
     const prefersDark =
       document.documentElement.classList.contains('dark') ||
@@ -47,29 +44,21 @@ export default function ChatPage() {
     document.documentElement.classList.toggle('dark');
   };
 
-  // ── Auto-scroll ──────────────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // ── Session / history loading ────────────────────────────────────────────
-  // Re-runs only when the URL session ID actually changes.
   const sessionIdFromUrl: string | null = Array.isArray(params?.id)
     ? (params.id[0] ?? null)
     : null;
 
   useEffect(() => {
-    // Nothing changed — skip.
     if (sessionIdFromUrl === loadedSessionRef.current) return;
-
-    // Reset chat state for the new (or cleared) session.
     setMessages([]);
     setSession(sessionIdFromUrl);
     loadedSessionRef.current = sessionIdFromUrl;
 
     if (!sessionIdFromUrl) return;
-
-    // Fetch conversation history for an existing session.
     setIsLoadingHistory(true);
     fetch(`${API_BASE}/chat/sessions/${sessionIdFromUrl}/messages`)
       .then((res) => {
@@ -95,18 +84,15 @@ export default function ChatPage() {
       });
   }, [sessionIdFromUrl]);
 
-  // ── Send message + stream response ──────────────────────────────────────
   const handleSendMessage = useCallback(
     async (text: string) => {
       if (isStreaming || isLoadingHistory) return;
 
-      // Optimistically add the user turn.
       const userMessage: Message = {
         id: crypto.randomUUID(),
         role: 'user',
         content: text,
       };
-      // Add a placeholder for the assistant reply.
       const botMessageId = crypto.randomUUID();
       setMessages((prev) => [
         ...prev,
@@ -201,7 +187,6 @@ export default function ChatPage() {
     [isStreaming, isLoadingHistory, session]
   );
 
-  // ── Derived state ────────────────────────────────────────────────────────
   const showWelcome = messages.length === 0 && !isLoadingHistory;
 
   return (
