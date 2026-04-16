@@ -3,6 +3,7 @@ import {
   getMyDoctorAvailabilitiesService,
   updateDoctorAvailabilityService,
   cancelDoctorAvailabilityService,
+  updateAvailabilitySlotBookStatusService,
 } from "../services/doctorAvailability.service.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.utils.js";
 
@@ -41,6 +42,19 @@ export const cancelDoctorAvailabilityController = async (req, res) => {
   try {
     const data = await cancelDoctorAvailabilityService(req.user, req.params.availabilityId);
     return sendSuccess(res, 200, "Availability cancelled successfully", data);
+  } catch (error) {
+    return sendError(res, error.statusCode || 500, error.message);
+  }
+};
+
+export const updateAvailabilitySlotBookStatusController = async (req, res) => {
+  try {
+    const data = await updateAvailabilitySlotBookStatusService(
+      req.params.slotId,
+      req.body,
+    );
+
+    return sendSuccess(res, 200, "Availability slot booking status updated successfully", data);
   } catch (error) {
     return sendError(res, error.statusCode || 500, error.message);
   }

@@ -92,3 +92,20 @@ export const deleteAvailability = async (availabilityId) => {
     .select()
     .single();
 };
+
+export const getAvailabilitySlotById = async (slotId) => {
+  return await doctorDb
+    .from("doctor_availability_slots")
+    .select("*")
+    .eq("id", slotId)
+    .maybeSingle();
+};
+
+export const updateAvailabilitySlotBookStatus = async (slotId, isBooked) => {
+  return await doctorDb
+    .from("doctor_availability_slots")
+    .update({ is_booked: isBooked })
+    .eq("id", slotId)
+    .select()
+    .single();
+};
