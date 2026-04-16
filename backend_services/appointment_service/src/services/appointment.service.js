@@ -8,15 +8,16 @@ import {
 } from "../utils/errors.utils.js";
 
 const AppointmentService = {
-  async createAppointment(patientId, doctorId, slotId, reason) {
-    // TEMPORARY MOCK — remove when Doctor Service is ready
-    const slotData = {
-      slot_date: "2026-04-26",
-      slot_start_time: "10:00:00",
-      slot_end_time: "10:30:00",
-      channelling_mode: "online",
-      consultation_fee: 1500,
-    };
+  async createAppointment(patientId, doctorId, slotId) {
+    // Step 1 — Get slot details from Doctor Service
+    let slotData;
+    try {
+      slotData = await getSlotDetails(slotId);
+    } catch (error) {
+      throw new AppError("Failed to fetch slot details. Please try again.", 503);
+    }
+
+    if (!slotData) throw new NotFoundError("Slot");
 
     // Step 2 — Check slot availability
     const existingAppointment =
@@ -67,7 +68,6 @@ const AppointmentService = {
       channelling_mode: slotData.channelling_mode,
       consultation_fee: slotData.consultation_fee,
       scheduled_at: scheduledAt.toISOString(),
-      reason,
       appointment_status: "pending",
       payment_status: "pending",
     });

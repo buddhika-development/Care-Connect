@@ -6,15 +6,11 @@ const AppointmentStatusController = {
     try {
       const { userId, role } = req.user;
       const { appointmentId } = req.params;
-      const { cancelReason } = req.body;
-
-      AppointmentValidator.validateCancelAppointment({ cancelReason });
 
       const appointment = await AppointmentStatusService.cancelAppointment(
         appointmentId,
         userId,
-        role,
-        cancelReason
+        role
       );
 
       return res.status(200).json({

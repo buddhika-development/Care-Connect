@@ -135,12 +135,7 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updateStatusAndPayment(
-    appointmentId,
-    status,
-    paymentStatus,
-    paymentId,
-  ) {
+  async updateStatusAndPayment(appointmentId, status, paymentStatus, paymentId) {
     const { data, error } = await supabase
       .schema("appointments")
       .from("appointments")
@@ -177,14 +172,11 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updateCancelReason(appointmentId, cancelReason) {
+  async cancelAppointment(appointmentId) {
     const { data, error } = await supabase
       .schema("appointments")
       .from("appointments")
-      .update({
-        appointment_status: "cancelled",
-        cancel_reason: cancelReason,
-      })
+      .update({ appointment_status: "cancelled" })
       .eq("id", appointmentId)
       .select()
       .single();
