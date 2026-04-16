@@ -51,3 +51,18 @@ class UserAnalyzeResponse(BaseModel):
 
     user_id: uuid.UUID = Field(..., description="The user identifier supplied in the request")
     updated_summary: str = Field(..., description="AI-generated merged health summary")
+
+
+class DoctorSemanticRequest(BaseModel):
+    """Request body for PATCH /api/v1/doctor/semantic."""
+
+    doctor_id: str = Field(..., description="Unique identifier of the doctor")
+    doctor_bio: str = Field(..., description="Doctor biography / profile text to embed")
+
+
+class DoctorSemanticResponse(BaseModel):
+    """Response returned after the doctor embedding is generated and stored."""
+
+    success: bool = Field(..., description="Whether the operation succeeded")
+    message: str = Field(..., description="Human-readable result message")
+    data: dict = Field(..., description="Doctor profile data returned by the Doctor Service")

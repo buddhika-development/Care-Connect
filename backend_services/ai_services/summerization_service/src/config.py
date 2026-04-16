@@ -14,6 +14,8 @@ class Config:
     gemini_summarization_model = os.getenv("GOOGLE_SUMMARIZATION_MODEL", "gemini-2.5-flash")
 
     patient_service_url = os.getenv("PATIENT_SERVICE_URL", "http://localhost:3001")
+    doctor_service_url = os.getenv("DOCTOR_SERVICE_URL", "http://localhost:3002")
+    google_embedding_model = os.getenv("GOOGLE_EMBEDDING_MODEL", "gemini-embedding-001")
 
 
 class DevelopmentConfig(Config):
