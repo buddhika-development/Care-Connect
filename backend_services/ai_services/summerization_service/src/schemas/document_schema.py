@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 class DocumentAnalyzeRequest(BaseModel):
     """Request body for PATCH /api/document/analyze."""
 
+    user_id: str = Field(..., description="UUID of the user / patient who owns the document")
     document_id: str = Field(..., description="Unique identifier of the document")
     document_url: str = Field(..., description="Publicly accessible URL of the document to summarize")
 
