@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import config
 from src.routes.document_route import router as document_router
+from src.routes.user_route import router as user_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,6 +42,7 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(document_router, prefix="/api")
+app.include_router(user_router, prefix="/api")
 
 
 if __name__ == "__main__":
