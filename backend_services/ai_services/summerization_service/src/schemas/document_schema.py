@@ -1,10 +1,12 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
 
 class DocumentAnalyzeRequest(BaseModel):
     """Request body for PATCH /api/document/analyze."""
 
-    user_id: str = Field(..., description="UUID of the user / patient who owns the document")
+    user_id: uuid.UUID = Field(..., description="UUID of the user / patient who owns the document")
     document_id: str = Field(..., description="Unique identifier of the document")
     document_url: str = Field(..., description="Publicly accessible URL of the document to summarize")
 
@@ -19,7 +21,7 @@ class DocumentAnalyzeResponse(BaseModel):
 class UserAnalyzeRequest(BaseModel):
     """Request body for POST /api/user/analyze."""
 
-    user_id: str = Field(..., description="Unique identifier of the user / patient")
+    user_id: uuid.UUID = Field(..., description="UUID of the user / patient")
     user_current_summary: str = Field(
         ...,
         description="The patient's existing health summary that will be updated",
@@ -33,5 +35,5 @@ class UserAnalyzeRequest(BaseModel):
 class UserAnalyzeResponse(BaseModel):
     """Response returned after successful user health summary update."""
 
-    user_id: str = Field(..., description="The user identifier supplied in the request")
+    user_id: uuid.UUID = Field(..., description="The user identifier supplied in the request")
     updated_summary: str = Field(..., description="AI-generated merged health summary")

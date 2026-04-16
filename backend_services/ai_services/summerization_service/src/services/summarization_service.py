@@ -1,5 +1,4 @@
 import logging
-import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from docling.document_converter import DocumentConverter
@@ -127,7 +126,7 @@ class SummarizationService:
         try:
             repo = DocumentSummaryRepository(db)
             await repo.create(
-                user_id=uuid.UUID(request.user_id),
+                user_id=request.user_id,
                 document_id=request.document_id,
                 document_summary=document_summary,
             )
@@ -140,23 +139,26 @@ class SummarizationService:
             )
             raise
 
-        # ── Steps 4–6: Merge and push updated patient summary ─────────────────
+        # ── Steps 4–6: Merge and push updated patient summary (best-effort) ────
+        # This step is non-fatal: if the Patient Service is unreachable the
+        # document summary has already been stored in the DB and is returned
+        # to the caller regardless.
         try:
             updated_patient_summary = await SummarizationService._merge_patient_summary(
-                user_id=request.user_id,
+                user_id=str(request.user_id),
                 new_document_summary=document_summary,
             )
             await patient_client.update_patient_summary(
-                user_id=request.user_id,
+                user_id=str(request.user_id),
                 patient_summary=updated_patient_summary,
             )
         except Exception as exc:
-            logger.error(
-                "Patient summary update failed for user_id=%s: %s",
+            logger.warning(
+                "Patient profile update skipped for user_id=%s — Patient Service "
+                "may be unavailable (%s). Document summary was stored successfully.",
                 request.user_id,
                 exc,
             )
-            raise
 
         return DocumentAnalyzeResponse(
             document_id=request.document_id,
