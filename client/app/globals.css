@@ -41,9 +41,15 @@
   --shadow-modal: 0 20px 60px -10px rgb(0 0 0 / 0.12);
 }
 
+/*
+ * :root — explicit fallback values so the page is NEVER black
+ * even if the @theme CSS vars above fail to parse (CSS @theme is Tailwind v4 specific).
+ * These are plain CSS custom properties that apply unconditionally.
+ */
 :root {
   --background: #FAFAF8;
   --foreground: #1A1A2E;
+  color-scheme: light;
 }
 
 *,
@@ -58,8 +64,11 @@ body {
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  /* Hardcoded fallback first → Tailwind var second */
+  background-color: #FAFAF8; /* fallback */
+  background-color: var(--color-background, #FAFAF8);
+  color: #1A1A2E; /* fallback */
+  color: var(--color-text, #1A1A2E);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
