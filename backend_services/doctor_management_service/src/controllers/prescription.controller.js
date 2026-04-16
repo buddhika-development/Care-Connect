@@ -8,7 +8,11 @@ import { sendError, sendSuccess } from "../utils/apiResponse.utils.js";
 
 export const createPrescriptionController = async (req, res) => {
   try {
-    const data = await createPrescriptionService(req.user, req.body);
+    const data = await createPrescriptionService(
+      req.user,
+      req.params.appointmentId,
+      req.body,
+    );
 
     return sendSuccess(
       res,

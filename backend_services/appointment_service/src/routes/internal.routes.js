@@ -34,10 +34,4 @@ router.patch(
   InternalController.handlePaymentUpdate
 );
 
-router.patch(
-  "/appointments/:appointmentId/prescription",
-  internalMiddleware,
-  InternalController.updatePrescriptionId
-);
-
 export default router;

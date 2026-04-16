@@ -4,16 +4,18 @@ import AppointmentValidator from "../validators/appointment.validator.js";
 const AppointmentController = {
   async createAppointment(req, res, next) {
     try {
-      const { userId, role } = req.user;
-      const { doctorId, slotId, reason } = req.body;
+      const { userId } = req.user;
+      const { doctorId, slotId, scheduledAt, channelingMode, consultationFee } = req.body;
 
-      AppointmentValidator.validateCreateAppointment({ doctorId, slotId, reason });
+      AppointmentValidator.validateCreateAppointment({ doctorId, slotId, scheduledAt, channelingMode, consultationFee});
 
       const appointment = await AppointmentService.createAppointment(
         userId,
         doctorId,
         slotId,
-        reason
+        scheduledAt,
+        channelingMode,
+        consultationFee
       );
 
       return res.status(201).json({

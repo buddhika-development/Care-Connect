@@ -1,6 +1,10 @@
 import AppointmentRepository from "../repositories/appointment.repository.js";
 import httpClient from "../utils/httpClient.js";
-import { InvalidInputError, NotFoundError, AppError } from "../utils/errors.utils.js";
+import {
+  InvalidInputError,
+  NotFoundError,
+  AppError,
+} from "../utils/errors.utils.js";
 import { serviceNames } from "../constant/serviceNames.constant.js";
 import { updateSlotBookingStatus } from "../utils/doctorServiceHelper.js";
 
@@ -43,18 +47,21 @@ const InternalService = {
         appointmentId,
         "confirmed",
         "paid",
-        paymentId
+        paymentId,
       );
 
       // Step 2 — Mark slot as booked in Doctor Service (must succeed)
       try {
         await updateSlotBookingStatus(appointment.slot_id, true);
       } catch (error) {
-        throw new AppError("Failed to mark slot as booked. Please try again.", 503);
+        throw new AppError(
+          "Failed to mark slot as booked. Please try again.",
+          503,
+        );
       }
 
       // Step 3 — Create telemedicine session if online (must succeed)
-      if (appointment.channelling_mode === "online") {
+      if (appointment.channeling_mode === "online") {
         try {
           const response = await httpClient.post(
             TELEMEDICINE_SERVICE_URL,
@@ -65,18 +72,21 @@ const InternalService = {
               patientId: appointment.patient_id,
               doctorId: appointment.doctor_id,
               scheduledAt: appointment.scheduled_at,
-            }
+            },
           );
 
           // Step 4 — Store telemedicine session ID
           if (response.data?.id) {
             await AppointmentRepository.updateTelemedicineSession(
               appointmentId,
-              response.data.id
+              response.data.id,
             );
           }
         } catch (error) {
-          throw new AppError("Failed to create telemedicine session. Please try again.", 503);
+          throw new AppError(
+            "Failed to create telemedicine session. Please try again.",
+            503,
+          );
         }
       }
 
@@ -90,21 +100,11 @@ const InternalService = {
         appointmentId,
         "cancelled",
         "unpaid",
-        paymentId
+        paymentId,
       );
     }
 
     throw new InvalidInputError(`Invalid payment status: ${paymentStatus}`);
-  },
-
-  async updatePrescriptionId(appointmentId, prescriptionId) {
-    const appointment = await AppointmentRepository.findById(appointmentId);
-    if (!appointment) throw new NotFoundError("Appointment");
-
-    return await AppointmentRepository.updatePrescriptionId(
-      appointmentId,
-      prescriptionId
-    );
   },
 
   async autoCancelExpiredAppointments() {
@@ -113,7 +113,7 @@ const InternalService = {
       await AppointmentRepository.findPendingExpired(cutoffTime);
 
     console.log(
-      `Auto-cancel job: found ${expiredAppointments.length} expired appointments`
+      `Auto-cancel job: found ${expiredAppointments.length} expired appointments`,
     );
 
     for (const appointment of expiredAppointments) {
@@ -122,7 +122,7 @@ const InternalService = {
           appointment.id,
           "cancelled",
           "unpaid",
-          null
+          null,
         );
 
         // Release slot — graceful for auto-cancel job
@@ -131,7 +131,7 @@ const InternalService = {
         } catch (error) {
           console.error(
             `Failed to release slot for appointment ${appointment.id}:`,
-            error.message
+            error.message,
           );
         }
 
@@ -139,7 +139,7 @@ const InternalService = {
       } catch (error) {
         console.error(
           `Failed to auto-cancel appointment ${appointment.id}:`,
-          error.message
+          error.message,
         );
       }
     }

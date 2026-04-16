@@ -12,6 +12,7 @@ import {
   deleteAvailability,
   getAvailabilitySlotById,
   updateAvailabilitySlotBookStatus,
+  getAvailabilitySlotDetailsById,
 } from "../repositories/doctorAvailability.repository.js";
 import {
   ValidationError,
@@ -268,36 +269,20 @@ export const updateAvailabilitySlotBookStatusService = async (slotId, body) => {
   return data;
 };
 
-// ── Internal: fetch slot details by slotId ───────────────────────────────────
-// Called by appointment service when creating an appointment to get
-// slot_date, slot_start_time, slot_end_time, channelling_mode, consultation_fee
-export const getAvailabilitySlotByIdService = async (slotId) => {
-  if (!slotId) throw new ValidationError("slotId is required");
+export const getAvailabilitySlotDetailsByIdService = async (slotId) => {
+  if (!slotId) {
+    throw new ValidationError("slotId is required");
+  }
 
-  const { data, error } = await getAvailabilitySlotById(slotId);
+  const { data, error } = await getAvailabilitySlotDetailsById(slotId);
 
-  if (error) throw new DatabaseError(error.message);
-  if (!data) throw new NotFoundError("Slot not found");
+  if (error) {
+    throw new DatabaseError(error.message);
+  }
 
-  // Join with availability to get channelling_mode and consultation_fee
-  // The slots table has availability_id — fetch the parent availability
-  const { data: availability, error: availError } = await supabase
-    .schema("doctor_service")
-    .from("doctor_availability")
-    .select("channeling_mode, consultation_fee")
-    .eq("id", data.availability_id)
-    .maybeSingle();
+  if (!data) {
+    throw new NotFoundError("Availability slot not found");
+  }
 
-  if (availError) throw new DatabaseError(availError.message);
-  if (!availability) throw new NotFoundError("Availability not found for slot");
-
-  return {
-    slot_id: data.id,
-    slot_date: data.slot_date,
-    slot_start_time: data.slot_start_time,
-    slot_end_time: data.slot_end_time,
-    is_booked: data.is_booked,
-    channelling_mode: availability.channeling_mode,
-    consultation_fee: availability.consultation_fee,
-  };
+  return data;
 };

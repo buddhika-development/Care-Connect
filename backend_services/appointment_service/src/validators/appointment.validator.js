@@ -2,36 +2,28 @@ import { MissingFieldError, InvalidInputError } from "../utils/errors.utils.js";
 
 const AppointmentValidator = {
   validateCreateAppointment(data) {
-    const { doctorId, slotId, reason } = data;
+    const { doctorId, slotId, scheduledAt, channelingMode, consultationFee } = data;
 
-    // Required fields
     if (!doctorId) throw new MissingFieldError("doctorId");
     if (!slotId) throw new MissingFieldError("slotId");
-    if (!reason) throw new MissingFieldError("reason");
+    if (!scheduledAt) throw new MissingFieldError("scheduledAt");
+    if (!channelingMode) throw new MissingFieldError("channelingMode");
+    if (!consultationFee) throw new MissingFieldError("consultationFee");
 
-    // Type checks
-    if (typeof reason !== "string") {
-      throw new InvalidInputError("reason must be a string.");
+    const allowedModes = ["online", "physical"];
+    if (!allowedModes.includes(channelingMode)) {
+      throw new InvalidInputError(
+        "channelingMode must be either online or physical."
+      );
     }
 
-    // Reason length check
-    if (reason.trim().length < 10) {
-      throw new InvalidInputError("reason must be at least 10 characters.");
-    }
-    if (reason.trim().length > 500) {
-      throw new InvalidInputError("reason must not exceed 500 characters.");
-    }
-  },
-
-  validateCancelAppointment(data) {
-    const { cancelReason } = data;
-
-    if (cancelReason && typeof cancelReason !== "string") {
-      throw new InvalidInputError("cancelReason must be a string.");
+    const date = new Date(scheduledAt);
+    if (isNaN(date.getTime())) {
+      throw new InvalidInputError("scheduledAt must be a valid date.");
     }
 
-    if (cancelReason && cancelReason.trim().length === 0) {
-      throw new InvalidInputError("cancelReason cannot be empty.");
+    if (typeof consultationFee !== "number" || consultationFee <= 0) {
+      throw new InvalidInputError("consultationFee must be a positive number.");
     }
   },
 
@@ -56,12 +48,6 @@ const AppointmentValidator = {
     if (paymentStatus === "paid" && !paymentId) {
       throw new MissingFieldError("paymentId");
     }
-  },
-
-  validatePrescriptionUpdate(data) {
-    const { prescriptionId } = data;
-
-    if (!prescriptionId) throw new MissingFieldError("prescriptionId");
   },
 };
 

@@ -78,20 +78,7 @@ const AppointmentRepository = {
     if (error) throw new DatabaseError(error.message);
     return data || [];
   },
-
-  async findByPatientIdAndDate(patientId, date) {
-    const { data, error } = await supabase
-      .schema("appointments")
-      .from("appointments")
-      .select("*")
-      .eq("patient_id", patientId)
-      .gte("scheduled_at", `${date}T00:00:00`)
-      .lt("scheduled_at", `${date}T23:59:59`);
-
-    if (error) throw new DatabaseError(error.message);
-    return data || [];
-  },
-
+  
   async findPendingExpired(cutoffTime) {
     const { data, error } = await supabase
       .schema("appointments")
@@ -135,12 +122,7 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updateStatusAndPayment(
-    appointmentId,
-    status,
-    paymentStatus,
-    paymentId,
-  ) {
+  async updateStatusAndPayment(appointmentId, status, paymentStatus, paymentId) {
     const { data, error } = await supabase
       .schema("appointments")
       .from("appointments")
@@ -158,14 +140,14 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updateSlot(appointmentId, newSlotId, scheduledAt, channellingMode) {
+  async updateSlot(appointmentId, newSlotId, scheduledAt, channelingMode) {
     const { data, error } = await supabase
       .schema("appointments")
       .from("appointments")
       .update({
         slot_id: newSlotId,
         scheduled_at: scheduledAt,
-        channelling_mode: channellingMode,
+        channeling_mode: channelingMode,
         appointment_status: "rescheduled",
       })
       .eq("id", appointmentId)
@@ -177,14 +159,11 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updateCancelReason(appointmentId, cancelReason) {
+  async cancelAppointment(appointmentId) {
     const { data, error } = await supabase
       .schema("appointments")
       .from("appointments")
-      .update({
-        appointment_status: "cancelled",
-        cancel_reason: cancelReason,
-      })
+      .update({ appointment_status: "cancelled" })
       .eq("id", appointmentId)
       .select()
       .single();
@@ -208,19 +187,6 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updatePrescriptionId(appointmentId, prescriptionId) {
-    const { data, error } = await supabase
-      .schema("appointments")
-      .from("appointments")
-      .update({ prescription_id: prescriptionId })
-      .eq("id", appointmentId)
-      .select()
-      .single();
-
-    if (error) throw new DatabaseError(error.message);
-    if (!data) throw new NotFoundError("Appointment");
-    return data;
-  },
 };
 
 export default AppointmentRepository;

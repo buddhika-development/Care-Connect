@@ -5,9 +5,10 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.db.deps import get_db
-from src.schemas.chat_schema import ChatRequest, ChatSessionResponse
-from src.services.chat_service import ChatService
+from src.repositories.chat_message_repository import ChatMessageRepository
 from src.repositories.chat_session_repository import ChatSessionRepository
+from src.schemas.chat_schema import ChatMessageResponse, ChatRequest, ChatSessionResponse
+from src.services.chat_service import ChatService
 
 logger = logging.getLogger(__name__)
 
@@ -70,3 +71,18 @@ async def get_single_session(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
+
+
+@router.get(
+    "/sessions/{session_id}/messages",
+    summary="Get all messages for a session",
+    description="Returns the full conversation history for a session, ordered by turn index ascending.",
+    response_model=list[ChatMessageResponse],
+)
+async def get_session_messages(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    logger.info("Fetching messages for session=%s", session_id)
+    repo = ChatMessageRepository(db)
+    return await repo.get_by_session_id(session_id=session_id)
