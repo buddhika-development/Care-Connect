@@ -1,4 +1,4 @@
-import { serviceNames } from "../constant/serviceNames.constant.js";
+import { serviceNames } from "../constants/serviceNames.constant.js";
 import { ForbiddenError } from "../utils/errors.utils.js";
 
 export const internalMiddleware = async (req, res, next) => {
