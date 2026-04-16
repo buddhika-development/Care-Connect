@@ -1,5 +1,6 @@
 import {
   createMyDoctorProfileService,
+  getAllDoctorsWithAvailabilityService,
   getMyDoctorProfileService,
   updateMyDoctorProfileService,
 } from "../services/doctorProfile.service.js";
@@ -10,12 +11,7 @@ export const createMyDoctorProfileController = async (req, res) => {
   try {
     const data = await createMyDoctorProfileService(req.user, req.body);
 
-    return sendSuccess(
-      res,
-      201,
-      "Doctor profile created successfully",
-      data,
-    );
+    return sendSuccess(res, 201, "Doctor profile created successfully", data);
   } catch (error) {
     return sendError(res, error.statusCode || 500, error.message);
   }
@@ -26,12 +22,7 @@ export const getMyDoctorProfileController = async (req, res) => {
   try {
     const data = await getMyDoctorProfileService(req.user);
 
-    return sendSuccess(
-      res,
-      200,
-      "Doctor profile fetched successfully",
-      data,
-    );
+    return sendSuccess(res, 200, "Doctor profile fetched successfully", data);
   } catch (error) {
     return sendError(res, error.statusCode || 500, error.message);
   }
@@ -42,12 +33,18 @@ export const updateMyDoctorProfileController = async (req, res) => {
   try {
     const data = await updateMyDoctorProfileService(req.user, req.body);
 
-    return sendSuccess(
-      res,
-      200,
-      "Doctor profile updated successfully",
-      data,
-    );
+    return sendSuccess(res, 200, "Doctor profile updated successfully", data);
+  } catch (error) {
+    return sendError(res, error.statusCode || 500, error.message);
+  }
+};
+
+// Get all doctors with nested availability and slots from the view
+export const getAllDoctorsWithAvailabilityController = async (req, res) => {
+  try {
+    const data = await getAllDoctorsWithAvailabilityService(req.query);
+
+    return sendSuccess(res, 200, "Doctors fetched successfully", data);
   } catch (error) {
     return sendError(res, error.statusCode || 500, error.message);
   }

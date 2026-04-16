@@ -2,11 +2,15 @@ import express from "express";
 import extractUser from "../middleware/extractUser.middleware.js";
 import {
   createMyDoctorProfileController,
+  getAllDoctorsWithAvailabilityController,
   getMyDoctorProfileController,
   updateMyDoctorProfileController,
 } from "../controllers/doctorProfile.controller.js";
 
 const router = express.Router();
+
+// Get all doctors with nested availability and slots from the view
+router.get("/all", getAllDoctorsWithAvailabilityController);
 
 // Create doctor profile by logged-in doctor
 router.post("/", extractUser, createMyDoctorProfileController);

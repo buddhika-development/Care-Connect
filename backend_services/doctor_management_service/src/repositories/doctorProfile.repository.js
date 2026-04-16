@@ -29,3 +29,16 @@ export const updateDoctorProfileByUserId = async (userId, updatedData) => {
     .select()
     .single();
 };
+
+// Get all doctors with nested availabilities and slots from the view
+export const getAllDoctorsWithAvailability = async ({
+  specialization,
+} = {}) => {
+  let query = doctorDb.from("doctor_profiles_full_view").select("*");
+
+  if (specialization) {
+    query = query.eq("specialization", specialization);
+  }
+
+  return await query.order("full_name", { ascending: true });
+};
