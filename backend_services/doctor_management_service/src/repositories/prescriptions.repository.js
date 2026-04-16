@@ -58,6 +58,24 @@ export const getPrescriptionsByAppointmentId = async (
   return data;
 };
 
+// Get active prescriptions for a particular appointment by this doctor
+export const getActivePrescriptionsByAppointmentId = async (
+  appointmentId,
+  doctorProfileId,
+) => {
+  const { data, error } = await doctorDb
+    .from("prescriptions")
+    .select("*")
+    .eq("appointment_id", appointmentId)
+    .eq("doctor_profile_id", doctorProfileId)
+    .not("status", "eq", "cancelled")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return data;
+};
+
 // Get one prescription by id
 export const getPrescriptionById = async (prescriptionId) => {
   const { data, error } = await doctorDb
