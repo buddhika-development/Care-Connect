@@ -72,6 +72,7 @@ export interface DoctorAvailability {
   id: string;
   doctorId: string;
   date: string;
+  status: 'scheduled' | 'ongoing' | 'completed';
   consultationType: ConsultationType;
   startTime: string;
   endTime: string;
@@ -141,6 +142,7 @@ export function transformAvailability(
     id: raw.availability_id,
     doctorId,
     date: raw.available_date,
+    status: (raw.status === 'ongoing' || raw.status === 'completed') ? raw.status : 'scheduled',
     consultationType: raw.channeling_mode,
     startTime: stripSeconds(raw.start_time),
     endTime: stripSeconds(raw.end_time),

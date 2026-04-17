@@ -35,7 +35,7 @@ export default function DoctorSessionPage() {
   const router = useRouter();
 
   const { data: appointment, isLoading: aptLoading } = useAppointmentById(appointmentId);
-  const { data: patient, isLoading: patLoading } = useSessionPatientInfo('patient-001');
+  const { data: patient, isLoading: patLoading } = useSessionPatientInfo(appointmentId);
   const { mutate: completeSession, isPending: completing } = useCompleteSession();
 
   const [medicines, setMedicines] = useState<MedicineRow[]>([
@@ -124,7 +124,7 @@ export default function DoctorSessionPage() {
                 <div className="flex justify-between"><span className="text-text-muted">Date</span><span className="font-medium text-text">{formatDate(appointmentDate)}</span></div>
                 <div className="flex justify-between"><span className="text-text-muted">Time</span><span className="font-medium text-text">{formatTime(appointmentTime)}</span></div>
                 <div className="flex justify-between"><span className="text-text-muted">Type</span><span className={`font-medium ${isOnline ? 'text-primary' : 'text-accent'}`}>{isOnline ? '📹 Online' : '🏥 Physical'}</span></div>
-                <div className="flex justify-between items-center"><span className="text-text-muted">Status</span><StatusBadge status="ongoing" /></div>
+                <div className="flex justify-between items-center"><span className="text-text-muted">Status</span><StatusBadge status={appointment.appointment_status} /></div>
               </div>
             )}
 

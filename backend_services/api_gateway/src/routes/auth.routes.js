@@ -9,7 +9,8 @@ import { authenticate, authorize } from "../middleware/auth.middleware.js";
 
 const authRoutes = Router();
 
-authRoutes.post("/login", authLimiter, loginController);
+//authRoutes.post("/login", authLimiter, loginController);
+authRoutes.post("/login", loginController);
 
 authRoutes.post("/register", authLimiter, registerController);
 

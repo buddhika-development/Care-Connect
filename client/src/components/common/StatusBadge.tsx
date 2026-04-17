@@ -17,6 +17,10 @@ const STATUS_CONFIG: Record<AppointmentStatus, { label: string; className: strin
     label: 'Pending',
     className: 'bg-warning-light text-warning',
   },
+  rescheduled: {
+    label: 'Rescheduled',
+    className: 'bg-secondary text-text-secondary',
+  },
   cancelled: {
     label: 'Cancelled',
     className: 'bg-error-light text-error',

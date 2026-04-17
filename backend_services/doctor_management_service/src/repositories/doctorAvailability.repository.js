@@ -77,6 +77,20 @@ export const updateAvailability = async (availabilityId, data) => {
     .single();
 };
 
+export const updateAvailabilityStatus = async (
+  availabilityId,
+  doctorProfileId,
+  status,
+) => {
+  return await doctorDb
+    .from("doctor_availability")
+    .update({ status })
+    .eq("id", availabilityId)
+    .eq("doctor_profile_id", doctorProfileId)
+    .select()
+    .single();
+};
+
 export const deleteSlotsByAvailabilityId = async (availabilityId) => {
   return await doctorDb
     .from("doctor_availability_slots")

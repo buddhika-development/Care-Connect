@@ -5,6 +5,7 @@ export type ConsultationType = 'physical' | 'online';
 export type AppointmentStatus =
   | 'confirmed'
   | 'pending'
+  | 'rescheduled'
   | 'cancelled'
   | 'completed'
   | 'ongoing';

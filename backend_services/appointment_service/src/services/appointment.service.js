@@ -67,6 +67,18 @@ const AppointmentService = {
 
     return appointment;
   },
+
+  async getDoctorAppointmentsByDate(doctorId, date) {
+    if (!doctorId) {
+      throw new InvalidInputError("Doctor ID is required.");
+    }
+
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new InvalidInputError("Date must be provided in YYYY-MM-DD format.");
+    }
+
+    return await AppointmentRepository.findByDoctorIdAndDate(doctorId, date);
+  },
 };
 
 export default AppointmentService;

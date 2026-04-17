@@ -3,6 +3,8 @@ import {
   getMyDoctorAvailabilitiesService,
   updateDoctorAvailabilityService,
   cancelDoctorAvailabilityService,
+  markDoctorAvailabilityAsOngoingService,
+  markDoctorAvailabilityAsCompletedService,
   updateAvailabilitySlotBookStatusService,
   getAvailabilitySlotDetailsByIdService,
 } from "../services/doctorAvailability.service.js";
@@ -45,7 +47,35 @@ export const cancelDoctorAvailabilityController = async (req, res) => {
       req.user,
       req.params.availabilityId,
     );
+
+    console.log("Cancelled availability data:", data);
     return sendSuccess(res, 200, "Availability cancelled successfully", data);
+  } catch (error) {
+    return sendError(res, error.statusCode || 500, error.message);
+  }
+};
+
+export const markDoctorAvailabilityAsOngoingController = async (req, res) => {
+  try {
+    const data = await markDoctorAvailabilityAsOngoingService(
+      req.user,
+      req.params.availabilityId,
+    );
+
+    return sendSuccess(res, 200, "Availability marked as ongoing", data);
+  } catch (error) {
+    return sendError(res, error.statusCode || 500, error.message);
+  }
+};
+
+export const markDoctorAvailabilityAsCompletedController = async (req, res) => {
+  try {
+    const data = await markDoctorAvailabilityAsCompletedService(
+      req.user,
+      req.params.availabilityId,
+    );
+
+    return sendSuccess(res, 200, "Availability marked as completed", data);
   } catch (error) {
     return sendError(res, error.statusCode || 500, error.message);
   }
