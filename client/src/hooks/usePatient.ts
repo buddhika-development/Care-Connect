@@ -51,6 +51,8 @@ export function usePrescriptions() {
     queryKey: patientKeys.prescriptions(userId),
     queryFn: () => getPrescriptions(userId),
     enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 }
 
@@ -61,6 +63,8 @@ export function useMedicalDocuments() {
     queryKey: patientKeys.documents(userId),
     queryFn: () => getMedicalDocuments(userId),
     enabled: !!userId,
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 30,
   });
 }
 
@@ -71,6 +75,8 @@ export function useRecentActivity() {
     queryKey: patientKeys.activity(userId),
     queryFn: () => getRecentActivity(userId),
     enabled: !!userId,
+    staleTime: 1000 * 60,
+    gcTime: 1000 * 60 * 15,
   });
 }
 

@@ -22,6 +22,13 @@ type PatientProfileRaw = {
   medical_report_urls: Array<string | { path?: string | null; signedUrl?: string | null }> | null;
 };
 
+type AppointmentActivityRaw = {
+  id: string;
+  doctor_id: string;
+  scheduled_at: string;
+  appointment_status: string;
+};
+
 type PatientPrescriptionRaw = {
   id: string;
   patient_id: string;
@@ -147,13 +154,6 @@ function mapPatientRawToProfile(raw: PatientProfileRaw): PatientProfile {
     isCompleted: true,
   };
 }
-
-const MOCK_ACTIVITY: ActivityItem[] = [
-  { id: 'act-001', type: 'appointment', title: 'Appointment Confirmed', description: 'With Dr. Suresh Fernando on 20 Apr 2025', timestamp: '2025-04-15T09:30:00Z' },
-  { id: 'act-002', type: 'prescription', title: 'New Prescription Added', description: '2 medicines by Dr. Nirmala Jayawardena', timestamp: '2025-04-10T14:00:00Z' },
-  { id: 'act-003', type: 'payment', title: 'Payment Successful', description: 'LKR 2,000 for cardiology consultation', timestamp: '2025-04-08T11:15:00Z' },
-  { id: 'act-004', type: 'document', title: 'Document Uploaded', description: 'blood-test-results.pdf', timestamp: '2025-04-01T08:00:00Z' },
-];
 
 export async function getPatientProfile(userId: string): Promise<PatientProfile | null> {
   const { data } = await apiClient.get(`/api/patients/profile/${userId}`);
@@ -301,9 +301,47 @@ export async function uploadMedicalDocument(file: File): Promise<MedicalDocument
   };
 }
 
-// TODO: Replace with real API endpoint
 export async function getRecentActivity(patientId: string): Promise<ActivityItem[]> {
-  await new Promise((r) => setTimeout(r, 400));
   void patientId;
-  return MOCK_ACTIVITY;
+
+  const [prescriptionsResult, documentsResult, appointmentsResult] = await Promise.allSettled([
+    getPrescriptions(patientId),
+    getMedicalDocuments(patientId),
+    apiClient.get('/api/appointments'),
+  ]);
+
+  const prescriptions = prescriptionsResult.status === 'fulfilled' ? prescriptionsResult.value : [];
+  const documents = documentsResult.status === 'fulfilled' ? documentsResult.value : [];
+  const appointmentRows: AppointmentActivityRaw[] =
+    appointmentsResult.status === 'fulfilled'
+      ? appointmentsResult.value.data?.data ?? []
+      : [];
+
+  const prescriptionActivities: ActivityItem[] = prescriptions.map((rx) => ({
+    id: `rx-${rx.id}`,
+    type: 'prescription',
+    title: 'Prescription Issued',
+    description: `${rx.doctorName} · ${rx.medicines.length} medicine(s) · ${(rx.status || 'active').toUpperCase()}`,
+    timestamp: rx.createdAt || rx.date,
+  }));
+
+  const documentActivities: ActivityItem[] = documents.map((doc) => ({
+    id: `doc-${doc.id}`,
+    type: 'document',
+    title: 'Medical Report Available',
+    description: doc.fileName,
+    timestamp: doc.uploadDate,
+  }));
+
+  const appointmentActivities: ActivityItem[] = appointmentRows.map((apt) => ({
+    id: `apt-${apt.id}`,
+    type: 'appointment',
+    title: 'Appointment Updated',
+    description: `${apt.appointment_status.toUpperCase()} · ${new Date(apt.scheduled_at).toLocaleString()}`,
+    timestamp: apt.scheduled_at,
+  }));
+
+  return [...prescriptionActivities, ...documentActivities, ...appointmentActivities]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 20);
 }

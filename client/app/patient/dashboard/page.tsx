@@ -3,7 +3,7 @@
 import { Calendar, FileText, Bot, Search, Clock, Activity } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
-import { useRecentActivity } from '@/hooks/usePatient';
+import { useMedicalDocuments, usePrescriptions, useRecentActivity } from '@/hooks/usePatient';
 import StatsCard from '@/components/common/StatsCard';
 import StatusBadge from '@/components/common/StatusBadge';
 import { formatDateTime } from '@/lib/utils';
@@ -35,6 +35,8 @@ export default function PatientDashboard() {
   const { user } = useAuth();
 
   const { data: appointments, isLoading, isError, refetch } = useAppointments();
+  const { data: prescriptions, isLoading: prescriptionsLoading, isError: prescriptionsError, refetch: refetchPrescriptions } = usePrescriptions();
+  const { data: documents, isLoading: documentsLoading, isError: documentsError, refetch: refetchDocuments } = useMedicalDocuments();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
 
   const greeting = () => {
@@ -44,21 +46,35 @@ export default function PatientDashboard() {
     return 'Good evening';
   };
 
-  const upcoming = appointments?.find(a => a.status === 'confirmed' || a.status === 'ongoing');
-  const confirmedCount = appointments?.filter(a => a.status === 'confirmed').length ?? 0;
-  const completedCount = appointments?.filter(a => a.status === 'completed').length ?? 0;
+  const safeAppointments = appointments ?? [];
+  const upcoming = safeAppointments.find(a => a.status === 'confirmed' || a.status === 'ongoing');
+  const confirmedCount = safeAppointments.filter(a => a.status === 'confirmed').length;
+  const completedCount = safeAppointments.filter(a => a.status === 'completed').length;
+  const medicalRecordsCount = (prescriptions?.length ?? 0) + (documents?.length ?? 0);
 
   if (isLoading) return <DashboardSkeleton />;
 
-  if (isError) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-error font-medium mb-3">Failed to load dashboard data.</p>
-      <button onClick={() => refetch()} className="px-4 py-2 bg-primary text-white rounded-xl text-sm">Retry</button>
-    </div>
-  );
+  const hasSupplementaryLoading = prescriptionsLoading || documentsLoading;
+  const hasSupplementaryError = prescriptionsError || documentsError;
 
   return (
     <div className="space-y-6">
+        {isError && (
+          <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning flex items-center justify-between gap-3">
+            <span>Some appointment data could not be loaded right now.</span>
+            <button
+              onClick={() => {
+                refetch();
+                refetchPrescriptions();
+                refetchDocuments();
+              }}
+              className="px-3 py-1.5 bg-warning text-white rounded-lg text-xs font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Welcome card */}
         <div className="bg-primary rounded-2xl p-6 text-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-10">
@@ -74,7 +90,7 @@ export default function PatientDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatsCard label="Upcoming Appointments" value={confirmedCount} icon={Calendar} color="primary" />
           <StatsCard label="Completed Sessions" value={completedCount} icon={Clock} color="success" />
-          <StatsCard label="Medical Records" value={2} icon={FileText} color="accent" />
+          <StatsCard label="Medical Records" value={hasSupplementaryLoading || hasSupplementaryError ? 0 : medicalRecordsCount} icon={FileText} color="accent" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
