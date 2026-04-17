@@ -1,5 +1,7 @@
 import {
   createPrescription,
+  getDoctorProfilesByIds,
+  getPrescriptionsByPatientId,
   findDoctorProfileByUserId,
   getPrescriptionById,
   getPrescriptionsByAppointmentId,
@@ -99,6 +101,39 @@ export const getMyPrescriptionsService = async (user) => {
   );
 
   return prescriptions || [];
+};
+
+export const getMyPatientPrescriptionsService = async (user) => {
+  if (!user || !user.userId) {
+    throw new ValidationError("Logged-in user information is missing");
+  }
+
+  if (user.role !== "patient") {
+    throw new ForbiddenError("Only patients can access this endpoint");
+  }
+
+  const prescriptions = await getPrescriptionsByPatientId(user.userId);
+  const rows = prescriptions || [];
+
+  const doctorProfileIds = Array.from(
+    new Set(rows.map((row) => row.doctor_profile_id).filter(Boolean)),
+  );
+
+  const doctorProfiles = await getDoctorProfilesByIds(doctorProfileIds);
+  const doctorProfileMap = new Map(
+    (doctorProfiles || []).map((profile) => [profile.id, profile]),
+  );
+
+  return rows.map((row) => {
+    const doctorProfile = doctorProfileMap.get(row.doctor_profile_id);
+    return {
+      ...row,
+      doctor_name: doctorProfile
+        ? `Dr. ${doctorProfile.first_name} ${doctorProfile.last_name}`
+        : "Doctor",
+      doctor_specialization: doctorProfile?.specialization || "",
+    };
+  });
 };
 
 export const getPrescriptionsByAppointmentService = async (

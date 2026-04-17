@@ -22,6 +22,40 @@ type PatientProfileRaw = {
   medical_report_urls: Array<string | { path?: string | null; signedUrl?: string | null }> | null;
 };
 
+type PatientPrescriptionRaw = {
+  id: string;
+  patient_id: string;
+  appointment_id: string;
+  diagnosis: string;
+  medications: Array<{
+    medicine_name?: string;
+    name?: string;
+    dosage?: string;
+    dosage_mg?: number | string;
+    dosage_unit?: string;
+    frequency?:
+      | string
+      | string[]
+      | {
+          morning?: boolean;
+          day?: boolean;
+          night?: boolean;
+          custom?: string;
+        };
+    duration?: string;
+    instruction_type?: 'before_meal' | 'after_meal' | 'with_meal' | 'before_sleep' | 'custom' | string;
+    instruction_text?: string;
+    instruction?: string;
+    instructions?: string;
+  }>;
+  notes: string | null;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+  doctor_name?: string;
+  doctor_specialization?: string;
+};
+
 function getFileNameFromPathOrUrl(value: string, fallback: string): string {
   try {
     const source = value.includes('?') ? value.split('?')[0] : value;
@@ -114,33 +148,6 @@ function mapPatientRawToProfile(raw: PatientProfileRaw): PatientProfile {
   };
 }
 
-const MOCK_PRESCRIPTIONS: Prescription[] = [
-  {
-    id: 'rx-001',
-    doctorName: 'Dr. Suresh Fernando',
-    doctorSpecialization: 'General Physician',
-    date: '2025-03-10',
-    medicines: [
-      { name: 'Amoxicillin', dosage: '500mg', frequency: 'Three times daily', duration: '7 days', instructions: 'Take with food' },
-      { name: 'Paracetamol', dosage: '500mg', frequency: 'As needed (max 4 times/day)', duration: '5 days', instructions: 'Do not exceed 2g/day' },
-    ],
-    notes: 'Patient presented with upper respiratory tract infection. Adequate rest and hydration advised.',
-    appointmentId: 'apt-001',
-  },
-  {
-    id: 'rx-002',
-    doctorName: 'Dr. Nirmala Jayawardena',
-    doctorSpecialization: 'Pulmonologist',
-    date: '2025-01-18',
-    medicines: [
-      { name: 'Salbutamol', dosage: '100mcg', frequency: 'As needed', duration: 'Ongoing', instructions: 'Use inhaler as directed' },
-      { name: 'Budesonide', dosage: '200mcg', frequency: 'Twice daily', duration: '30 days', instructions: 'Rinse mouth after use' },
-    ],
-    notes: 'Asthma management plan updated. Peak flow monitoring recommended.',
-    appointmentId: 'apt-002',
-  },
-];
-
 const MOCK_ACTIVITY: ActivityItem[] = [
   { id: 'act-001', type: 'appointment', title: 'Appointment Confirmed', description: 'With Dr. Suresh Fernando on 20 Apr 2025', timestamp: '2025-04-15T09:30:00Z' },
   { id: 'act-002', type: 'prescription', title: 'New Prescription Added', description: '2 medicines by Dr. Nirmala Jayawardena', timestamp: '2025-04-10T14:00:00Z' },
@@ -197,24 +204,96 @@ export async function savePatientProfile({
   return mapPatientRawToProfile(data.data as PatientProfileRaw);
 }
 
-// TODO: Replace with real API endpoint
-export async function getPrescriptions(patientId: string): Promise<Prescription[]> {
-  await new Promise((r) => setTimeout(r, 500));
-  void patientId;
-  return MOCK_PRESCRIPTIONS;
+function mapPatientPrescriptionRawToPrescription(raw: PatientPrescriptionRaw): Prescription {
+  const instructionLabelByType: Record<string, string> = {
+    before_meal: 'Before meal',
+    after_meal: 'After meal',
+    with_meal: 'With meal',
+    before_sleep: 'Before sleep',
+  };
+
+  const getFrequencyLabel = (frequency: PatientPrescriptionRaw['medications'][number]['frequency']): string => {
+    if (!frequency) return '';
+    if (typeof frequency === 'string') return frequency;
+    if (Array.isArray(frequency)) return frequency.join(', ');
+
+    const parts: string[] = [];
+    if (frequency.morning) parts.push('Morning');
+    if (frequency.day) parts.push('Day');
+    if (frequency.night) parts.push('Night');
+    if (frequency.custom && frequency.custom.trim()) parts.push(frequency.custom.trim());
+    return parts.join(', ');
+  };
+
+  const getInstructionLabel = (medicine: PatientPrescriptionRaw['medications'][number]): string => {
+    if (medicine.instructions && medicine.instructions.trim()) return medicine.instructions.trim();
+    if (medicine.instruction && medicine.instruction.trim()) return medicine.instruction.trim();
+
+    if (medicine.instruction_type === 'custom') {
+      return medicine.instruction_text?.trim() || '';
+    }
+
+    if (medicine.instruction_text && medicine.instruction_text.trim()) {
+      return medicine.instruction_text.trim();
+    }
+
+    if (medicine.instruction_type && instructionLabelByType[medicine.instruction_type]) {
+      return instructionLabelByType[medicine.instruction_type];
+    }
+
+    return '';
+  };
+
+  const getDosageLabel = (medicine: PatientPrescriptionRaw['medications'][number]): string => {
+    if (medicine.dosage_mg !== undefined && medicine.dosage_mg !== null && medicine.dosage_mg !== '') {
+      const dosageValue = typeof medicine.dosage_mg === 'string' ? Number(medicine.dosage_mg) : medicine.dosage_mg;
+      const unit = medicine.dosage_unit || 'mg';
+      if (!Number.isNaN(dosageValue)) {
+        return `${dosageValue} ${unit}/day`;
+      }
+    }
+
+    return medicine.dosage ?? '';
+  };
+
+  return {
+    id: raw.id,
+    patientId: raw.patient_id,
+    doctorName: raw.doctor_name || 'Doctor',
+    doctorSpecialization: raw.doctor_specialization || '',
+    date: raw.created_at.slice(0, 10),
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+    diagnosis: raw.diagnosis,
+    medicines: (raw.medications ?? []).map((medicine) => ({
+      name: medicine.medicine_name ?? medicine.name ?? 'Medicine',
+      dosage: getDosageLabel(medicine),
+      frequency: getFrequencyLabel(medicine.frequency),
+      duration: medicine.duration ?? '',
+      instructions: getInstructionLabel(medicine),
+    })),
+    notes: raw.notes ?? '',
+    appointmentId: raw.appointment_id,
+    status: raw.status,
+  };
 }
 
-// TODO: Replace with real API endpoint
+export async function getPrescriptions(patientId: string): Promise<Prescription[]> {
+  void patientId;
+  const { data } = await apiClient.get('/api/doctors/prescriptions/patient/my');
+  const rows: PatientPrescriptionRaw[] = data.data ?? [];
+  return rows.map(mapPatientPrescriptionRawToPrescription);
+}
+
 export async function getMedicalDocuments(patientId: string): Promise<MedicalDocument[]> {
   const profile = await getPatientProfile(patientId);
   return profile?.medicalDocuments ?? [];
 }
 
-// TODO: Replace with real API endpoint
 export async function uploadMedicalDocument(file: File): Promise<MedicalDocument> {
-  await new Promise((r) => setTimeout(r, 1200));
+  const tempName = `temp-${Date.now()}-${file.name}`;
   return {
-    id: `doc-${Date.now()}`,
+    id: tempName,
     fileName: file.name,
     uploadDate: new Date().toISOString().split('T')[0],
     fileUrl: '#',

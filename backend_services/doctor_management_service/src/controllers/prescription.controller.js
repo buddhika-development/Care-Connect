@@ -1,6 +1,7 @@
 import {
   cancelPrescriptionService,
   createPrescriptionService,
+  getMyPatientPrescriptionsService,
   getMyPrescriptionsService,
   getPrescriptionsByAppointmentService,
 } from "../services/prescription.service.js";
@@ -33,6 +34,21 @@ export const getMyPrescriptionsController = async (req, res) => {
       res,
       200,
       "Prescriptions fetched successfully",
+      data,
+    );
+  } catch (error) {
+    return sendError(res, error.statusCode || 500, error.message);
+  }
+};
+
+export const getMyPatientPrescriptionsController = async (req, res) => {
+  try {
+    const data = await getMyPatientPrescriptionsService(req.user);
+
+    return sendSuccess(
+      res,
+      200,
+      "Patient prescriptions fetched successfully",
       data,
     );
   } catch (error) {
