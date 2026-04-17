@@ -144,6 +144,7 @@ export default function AIAssistantPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const loadedSessionRef = useRef<string | null>(null);
+  const speechBaseInputRef = useRef('');
 
   // ── Load session history when URL changes ──────────────────────────────────
   useEffect(() => {
@@ -200,11 +201,24 @@ export default function AIAssistantPage() {
     rec.lang = 'en-US';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
-      let transcript = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        transcript += e.results[i][0].transcript;
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = 0; i < e.results.length; i++) {
+        const chunk = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalTranscript += chunk;
+        else interimTranscript += chunk;
       }
-      setInput((prev) => prev + (prev.length > 0 && !prev.endsWith(' ') ? ' ' : '') + transcript);
+
+      const composedInput = [
+        speechBaseInputRef.current.trim(),
+        finalTranscript.trim(),
+        interimTranscript.trim(),
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      setInput(composedInput);
     };
     rec.onerror = () => setIsListening(false);
     rec.onend = () => setIsListening(false);
@@ -219,6 +233,7 @@ export default function AIAssistantPage() {
       setIsListening(false);
     } else {
       try {
+        speechBaseInputRef.current = input;
         recognitionRef.current?.start();
         setIsListening(true);
       } catch {
