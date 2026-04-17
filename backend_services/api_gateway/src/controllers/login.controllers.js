@@ -23,6 +23,8 @@ export const loginController = async (req, res, next) => {
           lastName: user.last_name,
           role: user.role,
           complete_profile: user.complete_profile,
+          is_verified: user.is_verified,
+          is_active: user.is_active,
         },
       });
     }

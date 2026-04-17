@@ -95,7 +95,7 @@ export default function BookingFlow({ doctor, onClose }: BookingFlowProps) {
       setProcessingStep('booking');
       const scheduledAt = `${selectedDate}T${selectedSlot.startTime}:00`;
       const apt = await createAppointment({
-        doctorId: doctor.id,
+        doctorId: doctor.userId,
         slotId: selectedSlot.id,
         scheduledAt,
         channelingMode: consultationType,

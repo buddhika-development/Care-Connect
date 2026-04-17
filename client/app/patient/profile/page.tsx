@@ -11,13 +11,15 @@ import TagInput from '@/components/common/TagInput';
 import FileUpload from '@/components/common/FileUpload';
 import { MedicalDocument } from '@/types/patient';
 import { calculateAge } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { useProfileUIStore } from '@/store/profileStore';
 
 const schema = z.object({
-  phone: z.string().min(9, 'Enter a valid phone number'),
+  phone: z.string().refine((v) => v.replace(/\D/g, '').length === 10, 'Phone number must contain exactly 10 digits'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
   gender: z.string().min(1, 'Gender is required'),
   bloodType: z.string().min(1, 'Blood type is required'),
-  address: z.string().min(5, 'Enter a valid address'),
+  address: z.string().min(15, 'Address must be at least 15 characters'),
   emergencyContactName: z.string().min(1, 'Emergency contact name is required'),
   emergencyContactNumber: z.string().min(9, 'Enter a valid number'),
   allergies: z.array(z.string()),
@@ -40,11 +42,13 @@ function ProfileSkeleton() {
 }
 
 export default function PatientProfilePage() {
+  const { user } = useAuth();
   const { data: profile, isLoading, isError, refetch } = usePatientProfile();
   const { mutate: updateProfile, isPending } = useUpdatePatientProfile();
   const [age, setAge] = useState<number | null>(null);
   const [documents, setDocuments] = useState<MedicalDocument[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewUrl = useProfileUIStore((s) => s.profileImagePreview);
+  const setPreviewUrl = useProfileUIStore((s) => s.setProfileImagePreview);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { register, control, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
@@ -73,6 +77,20 @@ export default function PatientProfilePage() {
         currentMedications: profile.currentMedications,
       });
       setDocuments(profile.medicalDocuments);
+    } else {
+      reset({
+        phone: '',
+        dateOfBirth: '',
+        gender: '',
+        bloodType: '',
+        address: '',
+        emergencyContactName: '',
+        emergencyContactNumber: '',
+        allergies: [],
+        chronicConditions: [],
+        currentMedications: [],
+      });
+      setDocuments([]);
     }
   }, [profile, reset]);
 
@@ -81,10 +99,33 @@ export default function PatientProfilePage() {
   }, [dob]);
 
   const onSubmit = (data: FormData) => {
-    updateProfile({ ...data, isCompleted: true }, {
+    if (!user) {
+      toast.error('Session expired. Please log in again.');
+      return;
+    }
+
+    updateProfile({
+      mode: profile?.id ? 'update' : 'create',
+      payload: {
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        contactNumber: data.phone,
+        address: data.address,
+        dateOfBirth: data.dateOfBirth,
+        age: String(age ?? calculateAge(data.dateOfBirth)),
+        gender: data.gender,
+        bloodType: data.bloodType,
+        emergencyContactName: data.emergencyContactName,
+        emergencyContactNumber: data.emergencyContactNumber,
+        allergies: data.allergies,
+        chronicConditions: data.chronicConditions,
+        currentMedications: data.currentMedications,
+      },
+    }, {
       onSuccess: () => {
         // updateUserProfileStatus(true) called inside hook's onSuccess
-        toast.success('Profile updated successfully!');
+        toast.success(profile?.id ? 'Profile updated successfully!' : 'Profile created successfully!');
       },
       onError: () => toast.error('Failed to update profile. Try again.'),
     });
@@ -118,7 +159,8 @@ export default function PatientProfilePage() {
                   <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-2xl font-bold text-primary">
-                    {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+                    {(user?.firstName?.[0] ?? profile?.firstName?.[0] ?? '')}
+                    {(user?.lastName?.[0] ?? profile?.lastName?.[0] ?? '')}
                   </span>
                 )}
               </div>
@@ -141,8 +183,9 @@ export default function PatientProfilePage() {
               />
             </div>
             <div>
-              <p className="text-sm font-medium text-text">{profile?.firstName} {profile?.lastName}</p>
+              <p className="text-sm font-medium text-text">{user?.firstName} {user?.lastName}</p>
               <p className="text-xs text-text-muted mt-0.5">JPG, PNG or GIF. Max 5 MB.</p>
+              <p className="text-xs text-text-muted mt-1">Email is managed by account settings and cannot be changed here.</p>
             </div>
           </div>
         </div>
@@ -153,16 +196,20 @@ export default function PatientProfilePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-text mb-1.5">First Name</label>
-              <input value={profile?.firstName} disabled className={inputClass} />
+              <input value={user?.firstName ?? ''} disabled className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-medium text-text mb-1.5">Last Name</label>
-              <input value={profile?.lastName} disabled className={inputClass} />
+              <input value={user?.lastName ?? ''} disabled className={inputClass} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-text mb-1.5">Email</label>
-            <input value={profile?.email} disabled className={inputClass} />
+            <input value={user?.email ?? ''} disabled className={inputClass} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text mb-1.5">Account Verification</label>
+            <input value={user?.isVerified ? 'Verified' : 'Pending Verification'} disabled className={inputClass} />
           </div>
           <div>
             <label className="block text-sm font-medium text-text mb-1.5">Phone Number</label>

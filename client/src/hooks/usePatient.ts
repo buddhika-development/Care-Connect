@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getPatientProfile, updatePatientProfile, getPrescriptions,
+  getPatientProfile, savePatientProfile, getPrescriptions,
   getMedicalDocuments, getRecentActivity, uploadMedicalDocument,
 } from '@/services/patientService';
 import { useAuth } from '@/context/AuthContext';
@@ -27,7 +27,7 @@ export function useUpdatePatientProfile() {
   const { user, updateUserProfileStatus } = useAuth();
   const userId = user?.id ?? '';
   return useMutation({
-    mutationFn: updatePatientProfile,
+    mutationFn: savePatientProfile,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: patientKeys.profile(userId) });
       updateUserProfileStatus(true);

@@ -1,12 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getDoctorProfile, updateDoctorProfile, getDoctors, getDoctorAvailability,
-  createAvailability, getDoctorDaySchedules, getSessionPatientInfo,
+  getDoctorProfile, saveDoctorProfile, getDoctors, getDoctorAvailability,
+  createAvailability, updateAvailability, cancelAvailability,
+  getDoctorDaySchedules, getSessionPatientInfo,
   getAllDoctorsAdmin, verifyDoctor,
 } from '@/services/doctorService';
+import type {
+  CreateDoctorAvailabilityRequest,
+  UpdateDoctorAvailabilityRequest,
+} from '@/services/doctorService';
 import { useAuth } from '@/context/AuthContext';
-import { DoctorAvailability } from '@/types/doctor';
-import { getAccessToken } from '@/lib/axios';
 
 export const doctorKeys = {
   profile: (userId: string) => ['doctor', 'profile', userId] as const,
@@ -33,7 +36,7 @@ export function useUpdateDoctorProfile() {
   const { user, updateUserProfileStatus } = useAuth();
   const userId = user?.id ?? '';
   return useMutation({
-    mutationFn: updateDoctorProfile,
+    mutationFn: saveDoctorProfile,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: doctorKeys.profile(userId) });
       updateUserProfileStatus(true);
@@ -45,20 +48,17 @@ export function useUpdateDoctorProfile() {
  * Fetch all doctors. Specialization is backend-filtered (query param).
  * Name search is intentionally NOT a param here — do it client-side in the page.
  *
- * Only fires after:
- * a) Auth context has finished restoring the session (isLoading = false), AND
- * b) An access token is present in memory
- * This prevents a 401 flash on mount before the silent token refresh completes.
+ * Only fires after auth context has finished restoring the session.
+ * If access token is missing/expired, Axios refresh flow handles it.
  */
 export function useDoctors(specialization?: string) {
   const { isLoading: authLoading } = useAuth();
-  const hasToken = !!getAccessToken();
 
   return useQuery({
     queryKey: doctorKeys.list(specialization),
     queryFn: () => getDoctors(specialization),
-    // Wait until auth is resolved AND we have a token
-    enabled: !authLoading && hasToken,
+    // Wait until auth restore finishes. Axios interceptor can refresh token on-demand.
+    enabled: !authLoading,
     staleTime: 5 * 60 * 1000, // cache for 5 min — used for doctor-name enrichment in appointments
     retry: 2,
   });
@@ -77,7 +77,33 @@ export function useCreateAvailability() {
   const { user } = useAuth();
   const userId = user?.id ?? '';
   return useMutation({
-    mutationFn: (data: Omit<DoctorAvailability, 'id' | 'slots'>) => createAvailability(data),
+    mutationFn: (data: CreateDoctorAvailabilityRequest) => createAvailability(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: doctorKeys.availability(userId) });
+      qc.invalidateQueries({ queryKey: doctorKeys.daySchedules(userId) });
+    },
+  });
+}
+
+export function useUpdateAvailability() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
+  return useMutation({
+    mutationFn: (data: UpdateDoctorAvailabilityRequest) => updateAvailability(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: doctorKeys.availability(userId) });
+      qc.invalidateQueries({ queryKey: doctorKeys.daySchedules(userId) });
+    },
+  });
+}
+
+export function useCancelAvailability() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
+  return useMutation({
+    mutationFn: (availabilityId: string) => cancelAvailability(availabilityId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: doctorKeys.availability(userId) });
       qc.invalidateQueries({ queryKey: doctorKeys.daySchedules(userId) });

@@ -59,6 +59,9 @@ export default async function RefreshTokenUsecase(refreshToken) {
         firstName: data.first_name,
         lastName: data.last_name,
         role: decoded.role,
+        complete_profile: data.complete_profile,
+        is_verified: data.is_verified,
+        is_active: data.is_active,
         accessToken,
       },
     };

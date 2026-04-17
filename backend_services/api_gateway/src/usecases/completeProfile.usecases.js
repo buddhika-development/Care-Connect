@@ -30,6 +30,7 @@ export async function CompleteProfileUsecase(userData) {
     if (!userData.lastName || userData.lastName.trim() === null) {
       const profileData = {
         first_name: firstName,
+        last_name: "",
         complete_profile: true,
       };
       console.log("Updating user profile with data:", profileData);

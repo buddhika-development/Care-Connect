@@ -154,6 +154,25 @@ export const updateMyDoctorProfileService = async (user, body) => {
     throw new ValidationError("No valid fields provided for update");
   }
 
+  const serviceResponse = await CompleteProfileService(
+    body.full_name,
+    user.userId,
+  );
+  console.log(
+    "CompleteProfileService response in createMyDoctorProfileService:",
+    serviceResponse,
+  );
+
+  if (serviceResponse.data.userId !== user.userId) {
+    throw new ValidationError(
+      "Profile completion failed for the created doctor profile",
+    );
+  }
+
+  if (!serviceResponse.success) {
+    throw new AppError("Failed to complete profile after creation", 500);
+  }
+
   const { data, error } = await updateDoctorProfileByUserId(
     user.userId,
     filteredUpdates,

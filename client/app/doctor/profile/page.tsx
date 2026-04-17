@@ -1,23 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { Camera, Save } from 'lucide-react';
 import { useDoctorProfile, useUpdateDoctorProfile } from '@/hooks/useDoctor';
-import { calculateAge } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { useProfileUIStore } from '@/store/profileStore';
 
 const schema = z.object({
-  phone: z.string().min(9, 'Valid phone number required'),
-  dateOfBirth: z.string().min(1, 'Date of birth required'),
-  gender: z.string().min(1, 'Gender required'),
+  fullName: z.string().min(3, 'Full name is required'),
   specialization: z.string().min(2, 'Specialization required'),
-  medicalLicenseNumber: z.string().min(3, 'License number required'),
-  currentHospital: z.string().min(3, 'Hospital name required'),
-  yearsOfExperience: z.number().min(0).max(60),
-  consultationFee: z.number().min(100, 'Minimum fee is LKR 100'),
+  licenseNumber: z.string().min(3, 'License number required'),
+  roomNumber: z.string().min(1, 'Room number is required'),
+  experienceYears: z.number().min(0).max(60),
   bio: z.string().max(500, 'Max 500 characters').optional(),
 });
 
@@ -36,40 +34,62 @@ function ProfileSkeleton() {
 }
 
 export default function DoctorProfilePage() {
+  const { user } = useAuth();
   const { data: profile, isLoading, isError, refetch } = useDoctorProfile();
   const { mutate: updateProfile, isPending } = useUpdateDoctorProfile();
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewUrl = useProfileUIStore((s) => s.profileImagePreview);
+  const setPreviewUrl = useProfileUIStore((s) => s.setProfileImagePreview);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { phone: '', dateOfBirth: '', gender: '', specialization: '', medicalLicenseNumber: '', currentHospital: '', yearsOfExperience: 0, consultationFee: 1000, bio: '' },
+    defaultValues: {
+      fullName: '',
+      specialization: '',
+      licenseNumber: '',
+      roomNumber: '',
+      experienceYears: 0,
+      bio: '',
+    },
   });
-
-  const dob = watch('dateOfBirth');
-  const age = dob ? calculateAge(dob) : null;
 
   useEffect(() => {
     if (profile) {
       reset({
-        phone: profile.phone,
-        dateOfBirth: profile.dateOfBirth,
-        gender: profile.gender,
+        fullName: profile.fullName,
         specialization: profile.specialization,
-        medicalLicenseNumber: profile.medicalLicenseNumber,
-        currentHospital: profile.currentHospital,
-        yearsOfExperience: profile.yearsOfExperience,
-        consultationFee: profile.consultationFee,
+        licenseNumber: profile.licenseNumber,
+        roomNumber: profile.roomNumber,
+        experienceYears: profile.experienceYears,
         bio: profile.bio,
       });
+    } else if (user) {
+      reset({
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
+        specialization: '',
+        licenseNumber: '',
+        roomNumber: '',
+        experienceYears: 0,
+        bio: '',
+      });
     }
-  }, [profile, reset]);
+  }, [profile, reset, user]);
 
   const onSubmit = (data: FormData) => {
-    updateProfile(data, {
+    updateProfile({
+      mode: profile?.id ? 'update' : 'create',
+      payload: {
+        full_name: data.fullName,
+        specialization: data.specialization,
+        license_number: data.licenseNumber,
+        room_number: data.roomNumber,
+        experience_years: data.experienceYears,
+        bio: data.bio,
+      },
+    }, {
       onSuccess: () => {
         // updateUserProfileStatus(true) is called inside the hook's onSuccess
-        toast.success('Profile updated!');
+        toast.success(profile?.id ? 'Profile updated!' : 'Profile created!');
       },
       onError: () => toast.error('Update failed. Try again.'),
     });
@@ -103,7 +123,7 @@ export default function DoctorProfilePage() {
                   <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-2xl font-bold text-accent">
-                    {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+                    {(user?.firstName?.[0] ?? '')}{(user?.lastName?.[0] ?? '')}
                   </span>
                 )}
               </div>
@@ -113,40 +133,64 @@ export default function DoctorProfilePage() {
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setPreviewUrl(URL.createObjectURL(f)); }} />
             </div>
             <div>
-              <p className="text-sm font-medium text-text">Dr. {profile?.firstName} {profile?.lastName}</p>
-              <p className="text-xs text-text-muted mt-0.5">{profile?.specialization}</p>
-              {profile?.isVerified && <span className="inline-flex items-center gap-1 text-xs bg-success-light text-success px-2 py-0.5 rounded-full mt-1 font-medium">✓ Verified</span>}
+              <p className="text-sm font-medium text-text">Dr. {user?.firstName} {user?.lastName}</p>
+              <p className="text-xs text-text-muted mt-0.5">{profile?.specialization || 'Complete your profile to start receiving appointments.'}</p>
+              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full mt-1 font-medium ${user?.isVerified ? 'bg-success-light text-success' : 'bg-warning-light text-warning'}`}>
+                {user?.isVerified ? '✓ Verified' : 'Verification Pending'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Personal Info */}
+        {/* Account Info */}
         <div className="bg-card rounded-2xl border border-border shadow-card p-6 space-y-4">
-          <h2 className="font-semibold text-text">Personal Information</h2>
+          <h2 className="font-semibold text-text">Account Information</h2>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-text mb-1.5">First Name</label><input value={profile?.firstName} disabled className={inputClass} /></div>
-            <div><label className="block text-sm font-medium text-text mb-1.5">Last Name</label><input value={profile?.lastName} disabled className={inputClass} /></div>
+            <div><label className="block text-sm font-medium text-text mb-1.5">First Name</label><input value={user?.firstName ?? ''} disabled className={inputClass} /></div>
+            <div><label className="block text-sm font-medium text-text mb-1.5">Last Name</label><input value={user?.lastName ?? ''} disabled className={inputClass} /></div>
           </div>
-          <div><label className="block text-sm font-medium text-text mb-1.5">Email</label><input value={profile?.email} disabled className={inputClass} /></div>
-          <div><label className="block text-sm font-medium text-text mb-1.5">Phone Number</label><input {...register('phone')} placeholder="+94 77 000 0000" className={inputClass} />{errors.phone && <p className="text-error text-xs mt-1">{errors.phone.message}</p>}</div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-text mb-1.5">Date of Birth</label><input {...register('dateOfBirth')} type="date" className={inputClass} />{errors.dateOfBirth && <p className="text-error text-xs mt-1">{errors.dateOfBirth.message}</p>}</div>
-            <div><label className="block text-sm font-medium text-text mb-1.5">Age</label><input value={age ? `${age} years` : ''} disabled className={inputClass} /></div>
-          </div>
-          <div><label className="block text-sm font-medium text-text mb-1.5">Gender</label><select {...register('gender')} className={inputClass}><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select>{errors.gender && <p className="text-error text-xs mt-1">{errors.gender.message}</p>}</div>
+          <div><label className="block text-sm font-medium text-text mb-1.5">Email</label><input value={user?.email ?? ''} disabled className={inputClass} /></div>
+          <div><label className="block text-sm font-medium text-text mb-1.5">Verification</label><input value={user?.isVerified ? 'Verified' : 'Pending verification'} disabled className={inputClass} /></div>
+          <p className="text-xs text-text-muted">Email and account name are managed by authentication and cannot be edited here.</p>
         </div>
 
-        {/* Professional Info */}
+        {/* Profile Fields */}
         <div className="bg-card rounded-2xl border border-border shadow-card p-6 space-y-4">
-          <h2 className="font-semibold text-text">Professional Information</h2>
-          <div><label className="block text-sm font-medium text-text mb-1.5">Specialization</label><input {...register('specialization')} placeholder="General Physician" className={inputClass} />{errors.specialization && <p className="text-error text-xs mt-1">{errors.specialization.message}</p>}</div>
-          <div><label className="block text-sm font-medium text-text mb-1.5">Medical License Number</label><input {...register('medicalLicenseNumber')} placeholder="SLMC-XXXX" className={inputClass} />{errors.medicalLicenseNumber && <p className="text-error text-xs mt-1">{errors.medicalLicenseNumber.message}</p>}</div>
-          <div><label className="block text-sm font-medium text-text mb-1.5">Current Hospital / Clinic</label><input {...register('currentHospital')} placeholder="Colombo General Hospital" className={inputClass} />{errors.currentHospital && <p className="text-error text-xs mt-1">{errors.currentHospital.message}</p>}</div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-text mb-1.5">Years of Experience</label><input {...register('yearsOfExperience', { valueAsNumber: true })} type="number" min={0} className={inputClass} />{errors.yearsOfExperience && <p className="text-error text-xs mt-1">{errors.yearsOfExperience.message}</p>}</div>
-            <div><label className="block text-sm font-medium text-text mb-1.5">Consultation Fee (LKR)</label><input {...register('consultationFee', { valueAsNumber: true })} type="number" min={100} className={inputClass} />{errors.consultationFee && <p className="text-error text-xs mt-1">{errors.consultationFee.message}</p>}</div>
+          <h2 className="font-semibold text-text">Professional Profile</h2>
+          <div>
+            <label className="block text-sm font-medium text-text mb-1.5">Display Name</label>
+            <input {...register('fullName')} placeholder="Dr. John Doe" className={inputClass} />
+            {errors.fullName && <p className="text-error text-xs mt-1">{errors.fullName.message}</p>}
           </div>
-          <div><label className="block text-sm font-medium text-text mb-1.5">Short Bio</label><textarea {...register('bio')} rows={3} placeholder="Brief professional bio..." className={`${inputClass} resize-none`} />{errors.bio && <p className="text-error text-xs mt-1">{errors.bio.message}</p>}</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5">Specialization</label>
+              <input {...register('specialization')} placeholder="General Physician" className={inputClass} />
+              {errors.specialization && <p className="text-error text-xs mt-1">{errors.specialization.message}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5">Medical License Number</label>
+              <input {...register('licenseNumber')} placeholder="SLMC-XXXX" className={inputClass} />
+              {errors.licenseNumber && <p className="text-error text-xs mt-1">{errors.licenseNumber.message}</p>}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5">Room Number</label>
+              <input {...register('roomNumber')} placeholder="A-102" className={inputClass} />
+              {errors.roomNumber && <p className="text-error text-xs mt-1">{errors.roomNumber.message}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5">Years of Experience</label>
+              <input {...register('experienceYears', { valueAsNumber: true })} type="number" min={0} className={inputClass} />
+              {errors.experienceYears && <p className="text-error text-xs mt-1">{errors.experienceYears.message}</p>}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text mb-1.5">Short Bio</label>
+            <textarea {...register('bio')} rows={3} placeholder="Brief professional bio..." className={`${inputClass} resize-none`} />
+            {errors.bio && <p className="text-error text-xs mt-1">{errors.bio.message}</p>}
+          </div>
         </div>
 
         <button type="submit" disabled={isPending} className="w-full py-3 px-6 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-all shadow-sm disabled:opacity-60 flex items-center justify-center gap-2">

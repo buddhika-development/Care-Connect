@@ -5,7 +5,7 @@ export const CompleteProfileController = async (req, res, next) => {
   try {
     const userId = req.params.userId;
     const { firstName, lastName, complereProfile } = req.body;
-
+    console.log("CompleteProfileController req.body:", req.body);
     const userData = {
       userId,
       firstName,
@@ -13,7 +13,9 @@ export const CompleteProfileController = async (req, res, next) => {
       complereProfile: true,
     };
 
-    const result = await CompleteProfileUsecase(userData);
+    const result = await CompleteProfileUsecase(userData); 
+
+    console.log("CompleteProfileController result:", result);
 
     console.log("CompleteProfileUsecase result:", result);
     if (result.success) {

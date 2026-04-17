@@ -10,6 +10,8 @@ export interface AuthUser {
   lastName: string;
   role: UserRole;
   completeProfile: boolean;
+  isVerified: boolean;
+  isActive: boolean;
 }
 
 export interface LoginResponse {
@@ -34,6 +36,8 @@ export async function loginApi(
       lastName: d.lastName,
       role: d.role,
       completeProfile: d.complete_profile,
+      isVerified: !!d.is_verified,
+      isActive: d.is_active ?? true,
     },
   };
 }
@@ -68,8 +72,9 @@ export async function refreshSessionApi(): Promise<LoginResponse> {
       firstName: d.firstName,
       lastName: d.lastName,
       role: d.role,
-      // refresh endpoint doesn't return complete_profile — keep existing value
       completeProfile: d.complete_profile ?? true,
+      isVerified: !!d.is_verified,
+      isActive: d.is_active ?? true,
     },
   };
 }

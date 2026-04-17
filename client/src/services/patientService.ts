@@ -1,41 +1,85 @@
+import { apiClient } from '@/lib/axios';
 import { PatientProfile, Prescription, MedicalDocument, ActivityItem } from '@/types/patient';
 
-const MOCK_PATIENT_PROFILE: PatientProfile = {
-  id: 'pat-001',
-  userId: 'patient-001',
-  firstName: 'Kavindi',
-  lastName: 'Perera',
-  email: 'kavindi.perera@gmail.com',
-  phone: '+94 77 123 4567',
-  dateOfBirth: '1995-03-15',
-  age: 29,
-  gender: 'Female',
-  bloodType: 'B+',
-  address: '42 Galle Road, Colombo 03, Sri Lanka',
-  emergencyContactName: 'Roshan Perera',
-  emergencyContactNumber: '+94 71 987 6543',
-  allergies: ['Penicillin', 'Dust'],
-  chronicConditions: ['Mild Asthma'],
-  currentMedications: ['Salbutamol Inhaler'],
-  profileImage: null,
-  medicalDocuments: [
-    {
-      id: 'doc-001',
-      fileName: 'chest-xray-2024.pdf',
-      uploadDate: '2024-11-10',
-      fileUrl: '#',
-      fileSize: '2.4 MB',
-    },
-    {
-      id: 'doc-002',
-      fileName: 'blood-test-results.pdf',
-      uploadDate: '2025-01-22',
-      fileUrl: '#',
-      fileSize: '1.1 MB',
-    },
-  ],
-  isCompleted: true,
+type PatientProfileRaw = {
+  id: string;
+  user_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  contact_no: string;
+  address: string;
+  birthday: string;
+  age: number;
+  gender: string;
+  blood_type: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_no: string | null;
+  allergies: string[] | null;
+  chronic_conditions: string[] | null;
+  current_medications: string[] | null;
+  profile_img_url: string | null;
+  medical_report_urls: string[] | null;
 };
+
+export interface PatientProfilePayload {
+  email: string;
+  firstName: string;
+  lastName: string;
+  contactNumber: string;
+  address: string;
+  dateOfBirth: string;
+  age: string;
+  gender: string;
+  bloodType?: string;
+  emergencyContactName?: string;
+  emergencyContactNumber?: string;
+  allergies?: string[];
+  chronicConditions?: string[];
+  currentMedications?: string[];
+}
+
+export interface SavePatientProfileRequest {
+  mode: 'create' | 'update';
+  payload: PatientProfilePayload;
+}
+
+function mapPatientRawToProfile(raw: PatientProfileRaw): PatientProfile {
+  const documentUrls = raw.medical_report_urls ?? [];
+  const medicalDocuments: MedicalDocument[] = documentUrls.map((url, index) => {
+    const parts = url.split('/');
+    const fileName = decodeURIComponent(parts[parts.length - 1] || `document-${index + 1}.pdf`);
+    return {
+      id: `doc-${index + 1}`,
+      fileName,
+      uploadDate: new Date().toISOString().slice(0, 10),
+      fileUrl: url,
+      fileSize: 'Unknown',
+    };
+  });
+
+  return {
+    id: raw.id,
+    userId: raw.user_id,
+    email: raw.email,
+    firstName: raw.first_name,
+    lastName: raw.last_name,
+    phone: raw.contact_no,
+    address: raw.address,
+    dateOfBirth: raw.birthday,
+    age: raw.age,
+    gender: raw.gender,
+    bloodType: raw.blood_type ?? '',
+    emergencyContactName: raw.emergency_contact_name ?? '',
+    emergencyContactNumber: raw.emergency_contact_no ?? '',
+    allergies: raw.allergies ?? [],
+    chronicConditions: raw.chronic_conditions ?? [],
+    currentMedications: raw.current_medications ?? [],
+    profileImage: raw.profile_img_url,
+    medicalDocuments,
+    isCompleted: true,
+  };
+}
 
 const MOCK_PRESCRIPTIONS: Prescription[] = [
   {
@@ -71,17 +115,21 @@ const MOCK_ACTIVITY: ActivityItem[] = [
   { id: 'act-004', type: 'document', title: 'Document Uploaded', description: 'blood-test-results.pdf', timestamp: '2025-04-01T08:00:00Z' },
 ];
 
-// TODO: Replace with real API endpoint
-export async function getPatientProfile(userId: string): Promise<PatientProfile> {
-  await new Promise((r) => setTimeout(r, 600));
-  void userId;
-  return MOCK_PATIENT_PROFILE;
+export async function getPatientProfile(userId: string): Promise<PatientProfile | null> {
+  const { data } = await apiClient.get(`/api/patients/profile/${userId}`);
+  if (!data?.data) return null;
+  return mapPatientRawToProfile(data.data as PatientProfileRaw);
 }
 
-// TODO: Replace with real API endpoint
-export async function updatePatientProfile(data: Partial<PatientProfile>): Promise<PatientProfile> {
-  await new Promise((r) => setTimeout(r, 800));
-  return { ...MOCK_PATIENT_PROFILE, ...data };
+export async function savePatientProfile({
+  mode,
+  payload,
+}: SavePatientProfileRequest): Promise<PatientProfile> {
+  const endpoint = '/api/patients/profile';
+  const { data } = mode === 'create'
+    ? await apiClient.post(endpoint, payload)
+    : await apiClient.patch(endpoint, payload);
+  return mapPatientRawToProfile(data.data as PatientProfileRaw);
 }
 
 // TODO: Replace with real API endpoint
@@ -93,9 +141,8 @@ export async function getPrescriptions(patientId: string): Promise<Prescription[
 
 // TODO: Replace with real API endpoint
 export async function getMedicalDocuments(patientId: string): Promise<MedicalDocument[]> {
-  await new Promise((r) => setTimeout(r, 400));
-  void patientId;
-  return MOCK_PATIENT_PROFILE.medicalDocuments;
+  const profile = await getPatientProfile(patientId);
+  return profile?.medicalDocuments ?? [];
 }
 
 // TODO: Replace with real API endpoint
