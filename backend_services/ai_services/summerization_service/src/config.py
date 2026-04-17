@@ -11,7 +11,7 @@ class Config:
     database_url = os.getenv("DATABASE_URL")
 
     gemini_api_key = os.getenv("GOOGLE_API_KEY")
-    gemini_summarization_model = os.getenv("GOOGLE_SUMMARIZATION_MODEL", "gemini-2.5-flash")
+    gemini_summarization_model = os.getenv("GOOGLE_SUMMARIZATION_MODEL", "gemini-2.5-flash-lite")
 
     patient_service_url = os.getenv("PATIENT_SERVICE_URL", "http://localhost:3001")
     doctor_service_url = os.getenv("DOCTOR_SERVICE_URL", "http://localhost:3002")

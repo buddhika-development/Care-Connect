@@ -4,6 +4,7 @@ import { Calendar, Users, Clock, Plus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDoctorProfile, useDoctorDaySchedules } from '@/hooks/useDoctor';
 import { useAppointments } from '@/hooks/useAppointments';
+import UserSummaryCard from '@/components/common/UserSummaryCard';
 import StatsCard from '@/components/common/StatsCard';
 import StatusBadge from '@/components/common/StatusBadge';
 import { formatDate, formatTime, cn } from '@/lib/utils';
@@ -52,6 +53,8 @@ export default function DoctorDashboard() {
           <h1 className="text-2xl font-bold">Dr. {user?.firstName} {user?.lastName}</h1>
           <p className="text-orange-100 text-sm mt-1">{profile?.specialization} · {profile?.currentHospital}</p>
         </div>
+
+        <UserSummaryCard />
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
