@@ -18,14 +18,18 @@ export const appointmentKeys = {
 };
 
 /**
- * Build a userId → DoctorCard map from the cached doctors list.
- * Appointments store doctor_id = the doctor's auth user_id,
- * so we MUST key by userId (not the profile id) for the lookup to work.
+ * Build a doctor lookup map from the cached doctors list.
+ *
+ * We support both keys because some historical appointments were saved with
+ * doctor_profile_id while newer records use auth user_id.
  */
 function buildDoctorsMap(doctors: DoctorCard[] | undefined): Map<string, DoctorCard> {
   const map = new Map<string, DoctorCard>();
   if (!doctors) return map;
-  for (const d of doctors) map.set(d.userId, d);  // key by auth user_id
+  for (const d of doctors) {
+    if (d.userId) map.set(d.userId, d);
+    if (d.id) map.set(d.id, d);
+  }
   return map;
 }
 

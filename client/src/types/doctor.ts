@@ -45,21 +45,12 @@ export interface DoctorProfileFull {
 export interface DoctorProfile {
   id: string;
   userId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  gender: string;
+  fullName: string;
   specialization: string;
-  medicalLicenseNumber: string;
-  currentHospital: string;
-  yearsOfExperience: number;
-  consultationFee: number;
+  licenseNumber: string;
+  experienceYears: number;
+  roomNumber: string;
   bio: string;
-  profileImage: string | null;
-  isCompleted: boolean;
-  isVerified: boolean;
 }
 
 export interface DoctorCard {
