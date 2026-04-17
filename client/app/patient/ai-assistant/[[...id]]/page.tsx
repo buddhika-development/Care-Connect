@@ -334,7 +334,7 @@ export default function AIAssistantPage() {
   return (
     // KEY FIX: use h-full instead of hard-coded calc heights so this
     // component fills whatever space the parent layout gives it.
-    <div className="flex w-full h-full overflow-hidden">
+    <div className="flex w-full h-full min-h-0 overflow-hidden">
 
       {/* ── Session sidebar ── */}
       <AIChatSidebar
@@ -345,7 +345,7 @@ export default function AIAssistantPage() {
       />
 
       {/* ── Chat panel — flex-1 so it fills ALL remaining width ── */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex h-full flex-col flex-1 min-w-0 overflow-hidden">
 
         {/* Sub-header inside the chat panel */}
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-card">

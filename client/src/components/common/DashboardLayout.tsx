@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Menu, HeartPulse } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/context/AuthContext';
@@ -21,6 +21,8 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
   const { user, isLoading, isAuthenticated } = useAuth();
   const skipped = useAuthUIStore((s) => s.skippedProfileCompletion);
   const router = useRouter();
+  const pathname = usePathname();
+  const isAIAssistantRoute = pathname?.startsWith('/patient/ai-assistant') ?? false;
 
   // Redirect if not authenticated after loading completes
   useEffect(() => {
@@ -80,8 +82,17 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
         </header>
 
         {/* Scrollable content */}
-        <main className={cn('flex-1 overflow-y-auto')}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <main
+          className={cn(
+            'flex-1 min-h-0',
+            isAIAssistantRoute ? 'overflow-hidden' : 'overflow-y-auto'
+          )}
+        >
+          <div
+            className={cn(
+              isAIAssistantRoute ? 'w-full h-full' : 'max-w-7xl mx-auto px-4 sm:px-6 py-6'
+            )}
+          >
             {children}
           </div>
         </main>

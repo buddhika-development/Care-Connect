@@ -244,8 +244,8 @@ export default function AIChatSidebar({
 
       {/* Desktop inline panel — fixed width, never shrinks */}
       <aside
-        className="hidden md:flex flex-col flex-shrink-0 border-r border-border bg-background"
-        style={{ width: '240px', minWidth: '240px' }}
+        className="hidden md:flex h-full flex-col flex-shrink-0 border-r border-border bg-background"
+        style={{ width: '250px', minWidth: '250px' }}
       >
         <SidebarContent {...sharedProps} />
       </aside>
