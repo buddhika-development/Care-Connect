@@ -8,6 +8,7 @@ import {
   getAvailabilityById,
   countBookedSlots,
   updateAvailability,
+  updateAvailabilityStatus,
   deleteSlotsByAvailabilityId,
   deleteAvailability,
   getAvailabilitySlotById,
@@ -248,6 +249,43 @@ export const cancelDoctorAvailabilityService = async (user, availabilityId) => {
   if (deleteError) throw new DatabaseError(deleteError.message);
 
   return data;
+};
+
+const updateDoctorAvailabilityStatusService = async (user, availabilityId, status) => {
+  if (!["ongoing", "completed"].includes(status)) {
+    throw new ValidationError("status must be ongoing or completed");
+  }
+
+  const doctorProfileId = await getDoctorProfileId(user);
+
+  const { data: availability, error: availabilityError } = await getAvailabilityById(
+    availabilityId,
+    doctorProfileId,
+  );
+
+  if (availabilityError) throw new DatabaseError(availabilityError.message);
+  if (!availability) throw new NotFoundError("Availability not found");
+
+  const { data: updatedAvailability, error: updateError } = await updateAvailabilityStatus(
+    availabilityId,
+    doctorProfileId,
+    status,
+  );
+
+  if (updateError) throw new DatabaseError(updateError.message);
+
+  return updatedAvailability;
+};
+
+export const markDoctorAvailabilityAsOngoingService = async (user, availabilityId) => {
+  return await updateDoctorAvailabilityStatusService(user, availabilityId, "ongoing");
+};
+
+export const markDoctorAvailabilityAsCompletedService = async (
+  user,
+  availabilityId,
+) => {
+  return await updateDoctorAvailabilityStatusService(user, availabilityId, "completed");
 };
 
 export const updateAvailabilitySlotBookStatusService = async (slotId, body) => {

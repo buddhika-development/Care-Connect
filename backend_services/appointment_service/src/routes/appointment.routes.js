@@ -22,6 +22,13 @@ router.get(
 );
 
 router.get(
+  "/doctor/day/:date",
+  extractUser,
+  authorize("doctor"),
+  AppointmentController.getDoctorAppointmentsByDate
+);
+
+router.get(
   "/:appointmentId",
   extractUser,
   authorize("patient", "doctor"),

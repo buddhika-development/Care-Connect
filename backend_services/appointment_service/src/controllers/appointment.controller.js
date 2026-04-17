@@ -86,6 +86,26 @@ const AppointmentController = {
       next(error);
     }
   },
+
+  async getDoctorAppointmentsByDate(req, res, next) {
+    try {
+      const { userId } = req.user;
+      const { date } = req.params;
+
+      const appointments = await AppointmentService.getDoctorAppointmentsByDate(
+        userId,
+        date,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Doctor appointments for date retrieved successfully.",
+        data: appointments,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
 
 export default AppointmentController;

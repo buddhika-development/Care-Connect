@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Calendar, Video, AlertCircle, Clock, Stethoscope } from 'lucide-react';
+import { Search, Calendar, Video, AlertCircle, Clock, Stethoscope, Activity } from 'lucide-react';
 import { useAppointments, useCancelAppointment } from '@/hooks/useAppointments';
+import { useDoctors } from '@/hooks/useDoctor';
 import StatusBadge from '@/components/common/StatusBadge';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import EmptyState from '@/components/common/EmptyState';
@@ -13,6 +15,8 @@ import { formatDateTime, formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { differenceInHours, parseISO } from 'date-fns';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { transformAvailability } from '@/types/doctor';
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -40,6 +44,19 @@ function AppointmentSkeleton() {
   );
 }
 
+const DAY_STATUS_STYLES: Record<'scheduled' | 'ongoing' | 'completed', string> = {
+  scheduled: 'bg-warning-light text-warning',
+  ongoing: 'bg-primary-100 text-primary-dark',
+  completed: 'bg-success-light text-success',
+};
+
+function getSessionStateLabel(appointment: Appointment, dayStatus: 'scheduled' | 'ongoing' | 'completed') {
+  if (appointment.status === 'ongoing') return 'Session ongoing';
+  if (dayStatus === 'ongoing' && appointment.status === 'confirmed') return 'Waiting for doctor';
+  if (dayStatus === 'completed') return 'Day completed';
+  return appointment.status;
+}
+
 export default function PatientAppointmentsPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -47,13 +64,43 @@ export default function PatientAppointmentsPage() {
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
 
   const { data: appointments, isLoading, isError, refetch } = useAppointments();
+  const { data: doctors = [] } = useDoctors();
   const { mutate: cancelAppointment, isPending: cancelling } = useCancelAppointment();
+
+  const doctorMap = useMemo(() => {
+    const map = new Map<string, (typeof doctors)[number]>();
+    for (const doctor of doctors) {
+      map.set(doctor.userId, doctor);
+      map.set(doctor.id, doctor);
+    }
+    return map;
+  }, [doctors]);
 
   const filtered = (appointments ?? []).filter((apt) => {
     const matchesStatus = statusFilter === 'all' || apt.status === statusFilter;
     const matchesSearch = !search || apt.doctorName.toLowerCase().includes(search.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  const enrichedAppointments = useMemo(() => {
+    return filtered.map((apt) => {
+      const doctor = doctorMap.get(apt.doctorId);
+      const selectedAvailability = doctor
+        ? doctor.availabilities
+            .map((availability) => transformAvailability(availability, doctor.id))
+            .find((availability) => availability.slots.some((slot) => slot.id === apt.slotId))
+        : null;
+
+      const selectedSlot = selectedAvailability?.slots.find((slot) => slot.id === apt.slotId) ?? null;
+
+      return {
+        appointment: apt,
+        doctorAvailabilityStatus: selectedAvailability?.status ?? 'scheduled',
+        selectedSlot,
+        isCurrentSlot: apt.status === 'ongoing',
+      };
+    });
+  }, [doctorMap, filtered]);
 
   const canReschedule = (apt: Appointment) => {
     if (apt.status !== 'confirmed') return false;
@@ -116,7 +163,7 @@ export default function PatientAppointmentsPage() {
           <p className="text-error font-medium mb-3">Failed to load appointments.</p>
           <button onClick={() => refetch()} className="px-4 py-2 bg-primary text-white rounded-xl text-sm">Retry</button>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : enrichedAppointments.length === 0 ? (
         <EmptyState
           icon={Calendar}
           title="No appointments found"
@@ -125,16 +172,17 @@ export default function PatientAppointmentsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {filtered.map((apt) => {
+          {enrichedAppointments.map(({ appointment: apt, doctorAvailabilityStatus, selectedSlot, isCurrentSlot }) => {
             const canRescheduleApt = canReschedule(apt);
             const isOnline = apt.consultationType === 'online';
+            const dayStatus = doctorAvailabilityStatus;
 
             return (
-              <div key={apt.id} className="bg-card rounded-2xl border border-border shadow-card p-5">
+              <div key={apt.id} className={cn('bg-card rounded-2xl border border-border shadow-card p-5', isCurrentSlot && 'ring-2 ring-primary/20')}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <Stethoscope className="w-4 h-4 text-primary flex-shrink-0" />
+                      <Stethoscope className="w-4 h-4 text-primary shrink-0" />
                       <p className="font-semibold text-text">{apt.doctorName || 'Doctor'}</p>
                     </div>
                     {apt.doctorSpecialization && (
@@ -154,6 +202,34 @@ export default function PatientAppointmentsPage() {
                   </span>
                   <span className="font-medium text-text">{formatCurrency(apt.fee)}</span>
                 </div>
+
+                <div className="ml-6 mb-3 flex flex-wrap gap-2 text-xs">
+                  <span className={cn('px-2.5 py-1 rounded-full font-medium', DAY_STATUS_STYLES[dayStatus as 'scheduled' | 'ongoing' | 'completed'])}>
+                    Day {dayStatus}
+                  </span>
+                  <span className={cn('px-2.5 py-1 rounded-full font-medium', apt.status === 'ongoing' ? 'bg-primary-100 text-primary-dark' : 'bg-secondary text-text-secondary')}>
+                    Session {getSessionStateLabel(apt, dayStatus as 'scheduled' | 'ongoing' | 'completed')}
+                  </span>
+                  {selectedSlot && (
+                    <span className={cn('px-2.5 py-1 rounded-full font-medium', isCurrentSlot ? 'bg-success-light text-success' : 'bg-secondary text-text-secondary')}>
+                      Slot {selectedSlot.startTime} - {selectedSlot.endTime}
+                    </span>
+                  )}
+                </div>
+
+                {isCurrentSlot && (
+                  <div className="flex items-center gap-2 mb-3 ml-6 text-xs text-primary bg-primary-50 px-3 py-1.5 rounded-lg w-fit">
+                    <Activity className="w-3.5 h-3.5" />
+                    This is the current ongoing slot for the day.
+                  </div>
+                )}
+
+                {dayStatus === 'ongoing' && apt.status === 'confirmed' && (
+                  <div className="flex items-center gap-2 mb-3 ml-6 text-xs text-warning bg-warning-light px-3 py-1.5 rounded-lg w-fit">
+                    <Activity className="w-3.5 h-3.5" />
+                    Doctor has started the day. Your session is waiting to be called.
+                  </div>
+                )}
 
                 {/* Countdown for pending status */}
                 {apt.status === 'pending' && apt.countdownExpiry && (

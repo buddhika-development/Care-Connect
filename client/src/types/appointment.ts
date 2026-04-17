@@ -20,6 +20,7 @@ export interface AppointmentRaw {
 // ─── Frontend-friendly appointment ───────────────────────────────────────────
 export interface Appointment {
   id: string;
+  slotId: string;
   patientId: string;
   patientName: string;
   patientImage: string | null;
@@ -33,6 +34,7 @@ export interface Appointment {
   consultationType: ConsultationType;
   status: AppointmentStatus;
   fee: number;
+  scheduledAt: string;
   paymentId: string;
   countdownExpiry?: string;
   sessionNotes?: string;

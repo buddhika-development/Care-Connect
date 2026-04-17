@@ -26,6 +26,7 @@ export function transformAppointment(
 
   return {
     id: raw.id,
+    slotId: raw.slot_id,
     patientId: raw.patient_id,
     patientName: '',
     patientImage: null,
@@ -39,6 +40,7 @@ export function transformAppointment(
     consultationType: raw.channeling_mode,  // DB: channeling_mode (single 'l')
     status: raw.appointment_status,
     fee: raw.consultation_fee,
+    scheduledAt: raw.scheduled_at,
     paymentId: raw.payment_id ?? '',
   };
 }
@@ -116,23 +118,13 @@ export async function completeSession(
   await apiClient.patch(`/api/appointments/${appointmentId}/complete`, { prescription });
 }
 
-// ─── Mocked: Doctor day appointments (out of scope) ───────────────────────────
-const MOCK_DOCTOR_DAY_APPOINTMENTS: Record<string, Appointment[]> = {
-  '2025-04-21': [
-    {
-      id: 'apt-d-001', patientId: 'pat-001', patientName: 'Kavindi Perera', patientImage: null,
-      doctorId: 'doc-001', doctorName: 'Dr. Suresh Fernando', doctorSpecialization: 'General Physician', doctorImage: null,
-      date: '2025-04-21', startTime: '09:00', endTime: '09:30',
-      consultationType: 'physical', status: 'confirmed' as AppointmentStatus, fee: 2000, paymentId: 'pay-d-001',
-    },
-  ],
-};
-
 export async function getDoctorDayAppointments(doctorId: string, date: string): Promise<Appointment[]> {
   void doctorId;
-  return MOCK_DOCTOR_DAY_APPOINTMENTS[date] ?? [];
+  const { data } = await apiClient.get(`/api/appointments/doctor/day/${date}`);
+  const rows: AppointmentRaw[] = data.data ?? [];
+  return rows.map((row) => transformAppointment(row, new Map()));
 }
 
 export async function getAdminAppointments(): Promise<Appointment[]> {
-  return Object.values(MOCK_DOCTOR_DAY_APPOINTMENTS).flat();
+  return [];
 }

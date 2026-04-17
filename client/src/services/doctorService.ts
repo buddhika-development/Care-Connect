@@ -45,6 +45,20 @@ type CreateAvailabilityResponse = {
   slots: DoctorAvailabilityRaw['doctor_availability_slots'];
 };
 
+type DoctorPatientMedicalRecordRaw = {
+  appointment_id: string;
+  patient_user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  age: number | null;
+  gender: string | null;
+  blood_type: string | null;
+  allergies: string[] | null;
+  chronic_conditions: string[] | null;
+  current_medications: string[] | null;
+  medical_report_urls: string[] | null;
+};
+
 export interface CreateDoctorAvailabilityRequest {
   date: string;
   consultationType: 'physical' | 'online';
@@ -91,6 +105,7 @@ function mapDoctorAvailability(raw: DoctorAvailabilityRaw): DoctorAvailability {
     id: raw.id,
     doctorId: raw.doctor_profile_id,
     date: raw.available_date,
+    status: raw.status,
     consultationType: raw.channeling_mode,
     startTime: stripSeconds(raw.start_time),
     endTime: stripSeconds(raw.end_time),
@@ -102,6 +117,33 @@ function mapDoctorAvailability(raw: DoctorAvailabilityRaw): DoctorAvailability {
       endTime: stripSeconds(slot.slot_end_time),
       isBooked: slot.is_booked,
     })),
+  };
+}
+
+function mapPatientMedicalRecordToSessionPatient(
+  raw: DoctorPatientMedicalRecordRaw,
+): SessionPatientInfo {
+  const fullName = `${raw.first_name ?? ''} ${raw.last_name ?? ''}`.trim();
+  const [firstName, ...rest] = fullName.length > 0 ? fullName.split(' ') : ['Patient'];
+  const lastName = rest.join(' ');
+
+  return {
+    id: raw.patient_user_id,
+    firstName,
+    lastName,
+    age: raw.age ?? 0,
+    gender: raw.gender ?? 'Unknown',
+    bloodType: raw.blood_type ?? 'Unknown',
+    profileImage: null,
+    allergies: raw.allergies ?? [],
+    chronicConditions: raw.chronic_conditions ?? [],
+    currentMedications: raw.current_medications ?? [],
+    medicalDocuments: (raw.medical_report_urls ?? []).map((url, index) => ({
+      id: `med-doc-${index + 1}`,
+      fileName: decodeURIComponent(url.split('/').pop() || `report-${index + 1}`),
+      fileUrl: url,
+    })),
+    previousAppointments: [],
   };
 }
 
@@ -122,34 +164,6 @@ export async function getDoctors(specialization?: string): Promise<DoctorCard[]>
 }
 
 // ─── Doctor self-profile (doctor role only) ───────────────────────────────────
-
-const MOCK_DAY_SCHEDULES: DoctorDaySchedule[] = [
-  { date: '2025-04-21', consultationType: 'physical', totalPatients: 3, status: 'scheduled', availabilityId: 'avail-001' },
-  { date: '2025-04-22', consultationType: 'online', totalPatients: 2, status: 'scheduled', availabilityId: 'avail-002' },
-  { date: '2025-04-18', consultationType: 'physical', totalPatients: 5, status: 'completed', availabilityId: 'avail-003' },
-  { date: '2025-04-17', consultationType: 'online', totalPatients: 4, status: 'completed', availabilityId: 'avail-004' },
-];
-
-const MOCK_SESSION_PATIENT: SessionPatientInfo = {
-  id: 'pat-001',
-  firstName: 'Kavindi',
-  lastName: 'Perera',
-  age: 29,
-  gender: 'Female',
-  bloodType: 'B+',
-  profileImage: null,
-  allergies: ['Penicillin', 'Dust'],
-  chronicConditions: ['Mild Asthma'],
-  currentMedications: ['Salbutamol Inhaler'],
-  medicalDocuments: [
-    { id: 'doc-001', fileName: 'chest-xray-2024.pdf', fileUrl: '#' },
-    { id: 'doc-002', fileName: 'blood-test-results.pdf', fileUrl: '#' },
-  ],
-  previousAppointments: [
-    { id: 'apt-prev-001', date: '2025-01-18', doctorName: 'Dr. Nirmala Jayawardena', status: 'completed', notes: 'Asthma follow-up' },
-    { id: 'apt-prev-002', date: '2024-11-05', doctorName: 'Dr. Suresh Fernando', status: 'completed', notes: 'Routine check-up' },
-  ],
-};
 
 export const MOCK_ALL_DOCTORS_ADMIN = [
   { id: 'doc-001', firstName: 'Suresh', lastName: 'Fernando', email: 'suresh.fernando@colombogeneral.lk', specialization: 'General Physician', currentHospital: 'Colombo General Hospital', isVerified: true },
@@ -236,18 +250,49 @@ export async function cancelAvailability(availabilityId: string): Promise<void> 
   await apiClient.delete(`/api/doctors/availability/${availabilityId}`);
 }
 
-// TODO: Replace with real API endpoint
-export async function getDoctorDaySchedules(doctorId: string): Promise<DoctorDaySchedule[]> {
-  await new Promise((r) => setTimeout(r, 500));
-  void doctorId;
-  return MOCK_DAY_SCHEDULES;
+export async function markAvailabilityAsOngoing(
+  availabilityId: string,
+): Promise<DoctorAvailability> {
+  const { data } = await apiClient.patch(
+    `/api/doctors/availability/${availabilityId}/ongoing`,
+  );
+  return mapDoctorAvailability(data.data as DoctorAvailabilityRaw);
 }
 
-// TODO: Replace with real API endpoint
-export async function getSessionPatientInfo(patientId: string): Promise<SessionPatientInfo> {
-  await new Promise((r) => setTimeout(r, 600));
-  void patientId;
-  return MOCK_SESSION_PATIENT;
+export async function markAvailabilityAsCompleted(
+  availabilityId: string,
+): Promise<DoctorAvailability> {
+  const { data } = await apiClient.patch(
+    `/api/doctors/availability/${availabilityId}/completed`,
+  );
+  return mapDoctorAvailability(data.data as DoctorAvailabilityRaw);
+}
+
+export async function getDoctorDaySchedules(doctorId: string): Promise<DoctorDaySchedule[]> {
+  const availabilities = await getDoctorAvailability(doctorId);
+  return availabilities.map((availability) => ({
+    date: availability.date,
+    consultationType: availability.consultationType,
+    totalPatients: availability.slots.filter((slot) => slot.isBooked).length,
+    status: availability.status,
+    availabilityId: availability.id,
+  }));
+}
+
+export async function getSessionPatientInfo(
+  appointmentId: string,
+): Promise<SessionPatientInfo | null> {
+  try {
+    const { data } = await apiClient.get(
+      `/api/doctors/appointments/${appointmentId}/medical-records`,
+    );
+    if (!data?.data) return null;
+    return mapPatientMedicalRecordToSessionPatient(
+      data.data as DoctorPatientMedicalRecordRaw,
+    );
+  } catch {
+    return null;
+  }
 }
 
 // TODO: Replace with real API endpoint

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getDoctorProfile, saveDoctorProfile, getDoctors, getDoctorAvailability,
   createAvailability, updateAvailability, cancelAvailability,
+  markAvailabilityAsOngoing, markAvailabilityAsCompleted,
   getDoctorDaySchedules, getSessionPatientInfo,
   getAllDoctorsAdmin, verifyDoctor,
 } from '@/services/doctorService';
@@ -17,7 +18,7 @@ export const doctorKeys = {
   list: (spec?: string) => ['doctor', 'list', spec ?? ''] as const,
   availability: (doctorId: string) => ['doctor', 'availability', doctorId] as const,
   daySchedules: (doctorId: string) => ['doctor', 'day-schedules', doctorId] as const,
-  sessionPatient: (patientId: string) => ['doctor', 'session-patient', patientId] as const,
+  sessionPatient: (appointmentId: string) => ['doctor', 'session-patient', appointmentId] as const,
   adminList: () => ['doctor', 'admin', 'list'] as const,
 };
 
@@ -111,6 +112,32 @@ export function useCancelAvailability() {
   });
 }
 
+export function useMarkAvailabilityAsOngoing() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
+  return useMutation({
+    mutationFn: (availabilityId: string) => markAvailabilityAsOngoing(availabilityId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: doctorKeys.availability(userId) });
+      qc.invalidateQueries({ queryKey: doctorKeys.daySchedules(userId) });
+    },
+  });
+}
+
+export function useMarkAvailabilityAsCompleted() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
+  return useMutation({
+    mutationFn: (availabilityId: string) => markAvailabilityAsCompleted(availabilityId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: doctorKeys.availability(userId) });
+      qc.invalidateQueries({ queryKey: doctorKeys.daySchedules(userId) });
+    },
+  });
+}
+
 export function useDoctorDaySchedules() {
   const { user } = useAuth();
   const userId = user?.id ?? '';
@@ -121,11 +148,11 @@ export function useDoctorDaySchedules() {
   });
 }
 
-export function useSessionPatientInfo(patientId: string) {
+export function useSessionPatientInfo(appointmentId: string) {
   return useQuery({
-    queryKey: doctorKeys.sessionPatient(patientId),
-    queryFn: () => getSessionPatientInfo(patientId),
-    enabled: !!patientId,
+    queryKey: doctorKeys.sessionPatient(appointmentId),
+    queryFn: () => getSessionPatientInfo(appointmentId),
+    enabled: !!appointmentId,
   });
 }
 

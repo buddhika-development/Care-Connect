@@ -41,6 +41,10 @@ export const getPatientMedicalRecordsByAppointmentService = async (
     return {
       appointment_id: appointmentId,
       patient_user_id: appointment.patient_id,
+      first_name: null,
+      last_name: null,
+      age: null,
+      gender: null,
       blood_type: null,
       allergies: null,
       chronic_conditions: [],
@@ -52,6 +56,10 @@ export const getPatientMedicalRecordsByAppointmentService = async (
   return {
     appointment_id: appointmentId,
     patient_user_id: appointment.patient_id,
+    first_name: patient.first_name || null,
+    last_name: patient.last_name || null,
+    age: patient.age || null,
+    gender: patient.gender || null,
     blood_type: patient.blood_type || null,
     allergies: patient.allergies || null,
     chronic_conditions: patient.chronic_conditions || [],
