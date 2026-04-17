@@ -36,9 +36,12 @@ class UserAnalyzeRequest(BaseModel):
     """Request body for POST /api/user/analyze."""
 
     user_id: uuid.UUID = Field(..., description="UUID of the user / patient")
-    user_current_summary: str = Field(
-        ...,
-        description="The patient's existing health summary that will be updated",
+    user_current_summary: str | None = Field(
+        None,
+        description=(
+            "Optional existing health summary. If omitted, the service uses the "
+            "currently stored summary for the user (if available)."
+        ),
     )
     user_new_content: str = Field(
         ...,
@@ -51,6 +54,18 @@ class UserAnalyzeResponse(BaseModel):
 
     user_id: uuid.UUID = Field(..., description="The user identifier supplied in the request")
     updated_summary: str = Field(..., description="AI-generated merged health summary")
+
+
+class UserDetailsResponse(BaseModel):
+    """Persisted summary details for a user."""
+
+    id: uuid.UUID = Field(..., description="Primary key of the user summary record")
+    user_id: uuid.UUID = Field(..., description="User identifier")
+    user_summary: str = Field(..., description="Latest stored user summary")
+    created_datetime: datetime | None = None
+    updated_datetime: datetime | None = None
+
+    model_config = {"from_attributes": True}
 
 
 class DoctorSemanticRequest(BaseModel):
