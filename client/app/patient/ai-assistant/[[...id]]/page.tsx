@@ -504,7 +504,7 @@ export default function AIAssistantPage() {
 
         {/* Input bar */}
         <div className="flex-shrink-0 px-4 pb-4 pt-1">
-          <div className="flex items-end gap-2 bg-card border border-border rounded-2xl p-2 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent shadow-card transition-all">
+          <div className="flex items-end gap-2 bg-card border border-border rounded-2xl p-2 shadow-card transition-all">
             <button
               type="button"
               onClick={toggleListening}
@@ -534,8 +534,8 @@ export default function AIAssistantPage() {
               placeholder="Describe your symptoms or ask a health question…"
               rows={1}
               disabled={isStreaming || isLoadingHistory}
-              className="flex-1 bg-transparent resize-none outline-none text-sm text-text placeholder:text-text-muted py-1.5 px-2 max-h-24 disabled:opacity-50"
-              style={{ minHeight: '40px' }}
+              className="flex-1 bg-transparent resize-none outline-none focus:outline-none focus-visible:outline-none text-sm text-text placeholder:text-text-muted py-1.5 px-2 max-h-24 disabled:opacity-50"
+              style={{ minHeight: '40px', outline: 'none' }}
             />
 
             <button
