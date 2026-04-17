@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from docling.document_converter import DocumentConverter
@@ -9,6 +10,7 @@ from src.core.http.patient_client import patient_client
 from src.prompts.summarization_prompt import summarization_prompt_template
 from src.prompts.user_summary_prompt import user_summary_prompt_template
 from src.repositories.document_summary_repository import DocumentSummaryRepository
+from src.repositories.user_summary_repository import UserSummaryRepository
 from src.schemas.document_schema import (
     DocumentAnalyzeRequest,
     DocumentAnalyzeResponse,
@@ -45,13 +47,17 @@ class SummarizationService:
     async def _merge_patient_summary(
         user_id: str,
         new_document_summary: str,
+        fallback_current_summary: str | None = None,
     ) -> str:
         """
         Fetch the patient's current summary from the Patient Service and merge
         it with the new document summary.  If the patient has no existing
         summary, the document summary is used as-is.
         """
-        current_summary = await patient_client.get_patient_summary(user_id)
+        try:
+            current_summary = await patient_client.get_patient_summary(user_id)
+        except Exception:
+            current_summary = fallback_current_summary
 
         if not current_summary:
             logger.info(
@@ -139,15 +145,28 @@ class SummarizationService:
             )
             raise
 
-        # ── Steps 4–6: Merge and push updated patient summary (best-effort) ────
-        # This step is non-fatal: if the Patient Service is unreachable the
-        # document summary has already been stored in the DB and is returned
-        # to the caller regardless.
+        # ── Steps 4–6: Merge, upsert local user summary, and push to Patient Service ────
+        # The Patient Service update is best-effort, but local user summary persistence
+        # is mandatory for every document analyze request.
+        user_summary_repo = UserSummaryRepository(db)
+        local_summary_record = await user_summary_repo.get_by_user_id(request.user_id)
+        local_current_summary = (
+            local_summary_record.user_summary if local_summary_record else None
+        )
+
+        updated_patient_summary = await SummarizationService._merge_patient_summary(
+            user_id=str(request.user_id),
+            new_document_summary=document_summary,
+            fallback_current_summary=local_current_summary,
+        )
+
+        await user_summary_repo.upsert(
+            user_id=request.user_id,
+            user_summary=updated_patient_summary,
+        )
+        await db.commit()
+
         try:
-            updated_patient_summary = await SummarizationService._merge_patient_summary(
-                user_id=str(request.user_id),
-                new_document_summary=document_summary,
-            )
             await patient_client.update_patient_summary(
                 user_id=str(request.user_id),
                 patient_summary=updated_patient_summary,
@@ -155,7 +174,7 @@ class SummarizationService:
         except Exception as exc:
             logger.warning(
                 "Patient profile update skipped for user_id=%s — Patient Service "
-                "may be unavailable (%s). Document summary was stored successfully.",
+                "may be unavailable (%s). Document and user summaries were stored successfully.",
                 request.user_id,
                 exc,
             )
@@ -168,6 +187,7 @@ class SummarizationService:
     @staticmethod
     async def analyze_user(
         request: UserAnalyzeRequest,
+        db: AsyncSession,
     ) -> UserAnalyzeResponse:
         """
         Merge an existing patient health summary with new health content using Gemini.
@@ -177,8 +197,15 @@ class SummarizationService:
           2. Invoke Gemini to produce a merged, updated summary.
           3. Return the structured response.
         """
+        user_summary_repo = UserSummaryRepository(db)
+        existing_summary_record = await user_summary_repo.get_by_user_id(request.user_id)
+
+        current_summary = request.user_current_summary
+        if current_summary is None and existing_summary_record:
+            current_summary = existing_summary_record.user_summary
+
         prompt_messages = user_summary_prompt_template.format_messages(
-            current_summary=request.user_current_summary,
+            current_summary=current_summary or "",
             new_content=request.user_new_content,
         )
 
@@ -198,7 +225,18 @@ class SummarizationService:
             len(updated_summary),
         )
 
+        await user_summary_repo.upsert(
+            user_id=request.user_id,
+            user_summary=updated_summary,
+        )
+        await db.commit()
+
         return UserAnalyzeResponse(
             user_id=request.user_id,
             updated_summary=updated_summary,
         )
+
+    @staticmethod
+    async def get_user_details(user_id: uuid.UUID, db: AsyncSession):
+        user_summary_repo = UserSummaryRepository(db)
+        return await user_summary_repo.get_by_user_id(user_id)

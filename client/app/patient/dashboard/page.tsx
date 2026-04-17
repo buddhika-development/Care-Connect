@@ -4,6 +4,7 @@ import { Calendar, FileText, Bot, Search, Clock, Activity } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useRecentActivity } from '@/hooks/usePatient';
+import UserSummaryCard from '@/components/common/UserSummaryCard';
 import StatsCard from '@/components/common/StatsCard';
 import StatusBadge from '@/components/common/StatusBadge';
 import { formatDateTime } from '@/lib/utils';
@@ -69,6 +70,8 @@ export default function PatientDashboard() {
           <h1 className="text-2xl font-bold mb-1">{user?.firstName} {user?.lastName}</h1>
           <p className="text-primary-light text-sm">Here&apos;s your health summary for today.</p>
         </div>
+
+        <UserSummaryCard />
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
