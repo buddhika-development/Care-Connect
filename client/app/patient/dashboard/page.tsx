@@ -3,7 +3,7 @@
 import { Calendar, FileText, Bot, Search, Clock, Activity } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAppointments } from '@/hooks/useAppointments';
-import { useRecentActivity } from '@/hooks/usePatient';
+import { useMedicalDocuments, usePrescriptions, useRecentActivity } from '@/hooks/usePatient';
 import UserSummaryCard from '@/components/common/UserSummaryCard';
 import StatsCard from '@/components/common/StatsCard';
 import StatusBadge from '@/components/common/StatusBadge';
