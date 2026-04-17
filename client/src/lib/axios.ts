@@ -6,9 +6,6 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, // ← sends the httpOnly refreshToken cookie automatically
-  headers: {
-    'Content-Type': 'application/json',
-  },
   timeout: 10000,
 });
 
@@ -37,6 +34,15 @@ function processQueue(token: string) {
 // Attaches the in-memory access token to every request as a Bearer token
 apiClient.interceptors.request.use(
   (config) => {
+    // Let the browser set multipart boundaries automatically for FormData.
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      if (config.headers) {
+        delete (config.headers as Record<string, unknown>)['Content-Type'];
+      }
+    } else if (config.headers && !(config.headers as Record<string, unknown>)['Content-Type']) {
+      (config.headers as Record<string, unknown>)['Content-Type'] = 'application/json';
+    }
+
     if (_accessToken) {
       config.headers.Authorization = `Bearer ${_accessToken}`;
     }

@@ -26,6 +26,7 @@ export function transformAppointment(
 
   return {
     id: raw.id,
+    telemedicineSessionId: raw.telemedicine_session_id,
     slotId: raw.slot_id,
     patientId: raw.patient_id,
     patientName: '',

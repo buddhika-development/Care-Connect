@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Users, Play, AlertCircle, ArrowRight } from 'lucide-react';
+import { Calendar, Users, Play, AlertCircle, ArrowRight, Search } from 'lucide-react';
 import {
   useDoctorAvailability,
   useMarkAvailabilityAsOngoing,
@@ -12,12 +12,17 @@ import EmptyState from '@/components/common/EmptyState';
 import { formatDate, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useDoctorAppointmentsUIStore } from '@/store/doctorAppointmentsStore';
+import { ConsultationType } from '@/types/common';
 
-const STATUS_STYLES: Record<'scheduled' | 'ongoing' | 'completed', string> = {
+const STATUS_STYLES: Record<string, string> = {
   scheduled: 'bg-warning-light text-warning',
   ongoing: 'bg-primary-100 text-primary',
   completed: 'bg-success-light text-success',
+  cancelled: 'bg-error-light text-error',
 };
+
+const STATUS_FILTER_OPTIONS = ['all', 'scheduled', 'ongoing', 'completed', 'cancelled'] as const;
+const TYPE_FILTER_OPTIONS: Array<'all' | ConsultationType> = ['all', 'physical', 'online'];
 
 function ScheduleSkeleton() {
   return (
@@ -32,6 +37,10 @@ function ScheduleSkeleton() {
 export default function DoctorAppointmentsPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | ConsultationType>('all');
+  const [statusFilter, setStatusFilter] = useState<typeof STATUS_FILTER_OPTIONS[number]>('all');
+
   const { data: availabilities = [], isLoading, isError, refetch } = useDoctorAvailability(user?.id ?? '');
   const { mutate: markOngoing, isPending: isStartingDay } = useMarkAvailabilityAsOngoing();
   const selectedDate = useDoctorAppointmentsUIStore((s) => s.selectedDate);
@@ -47,9 +56,25 @@ export default function DoctorAppointmentsPage() {
         date: availability.date,
         consultationType: availability.consultationType,
         totalPatients: availability.slots.filter((slot) => slot.isBooked).length,
-        status: availability.status,
+        status: availability.status as string,
       }));
   }, [availabilities]);
+
+  const filteredSchedules = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    return schedules.filter((schedule) => {
+      const matchesSearch =
+        !term ||
+        formatDate(schedule.date).toLowerCase().includes(term) ||
+        schedule.date.toLowerCase().includes(term);
+
+      const matchesType = typeFilter === 'all' || schedule.consultationType === typeFilter;
+      const matchesStatus = statusFilter === 'all' || schedule.status === statusFilter;
+
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [schedules, searchTerm, typeFilter, statusFilter]);
 
   const handleOpenDay = (date: string) => {
     setSelectedDate(date);
@@ -72,8 +97,10 @@ export default function DoctorAppointmentsPage() {
     });
   };
 
-  const upcoming = schedules.filter((s) => s.status !== 'completed');
-  const past = schedules.filter((s) => s.status === 'completed').sort((a, b) => b.date.localeCompare(a.date));
+  const upcoming = filteredSchedules.filter((s) => !['completed', 'cancelled'].includes(s.status));
+  const past = filteredSchedules
+    .filter((s) => ['completed', 'cancelled'].includes(s.status))
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <div className="space-y-6">
@@ -81,6 +108,46 @@ export default function DoctorAppointmentsPage() {
         <h1 className="text-2xl font-bold text-text">Appointments</h1>
         <p className="text-text-secondary text-sm mt-1">Your day-wise availability and booked sessions</p>
       </div>
+
+      {!isLoading && schedules.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl shadow-card p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="md:col-span-1 relative">
+              <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search by date"
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <select
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value as 'all' | ConsultationType)}
+              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary capitalize"
+            >
+              {TYPE_FILTER_OPTIONS.map((option) => (
+                <option key={option} value={option} className="capitalize">
+                  {option === 'all' ? 'All types' : option}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as typeof STATUS_FILTER_OPTIONS[number])}
+              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary capitalize"
+            >
+              {STATUS_FILTER_OPTIONS.map((option) => (
+                <option key={option} value={option} className="capitalize">
+                  {option === 'all' ? 'All statuses' : option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <ScheduleSkeleton />
@@ -96,6 +163,12 @@ export default function DoctorAppointmentsPage() {
           title="No availability yet"
           description="Set your availability first to receive bookings."
           action={{ label: 'Set Availability', onClick: () => router.push('/doctor/schedule') }}
+        />
+      ) : filteredSchedules.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="No matching appointment days"
+          description="Try a different search text or filter combination."
         />
       ) : (
         <>

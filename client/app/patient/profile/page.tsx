@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import Image from 'next/image';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -47,11 +48,14 @@ export default function PatientProfilePage() {
   const { mutate: updateProfile, isPending } = useUpdatePatientProfile();
   const [age, setAge] = useState<number | null>(null);
   const [documents, setDocuments] = useState<MedicalDocument[]>([]);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [medicalDocumentFiles, setMedicalDocumentFiles] = useState<Array<{ id: string; file: File }>>([]);
+  const [removedDocumentPaths, setRemovedDocumentPaths] = useState<string[]>([]);
   const previewUrl = useProfileUIStore((s) => s.profileImagePreview);
   const setPreviewUrl = useProfileUIStore((s) => s.setProfileImagePreview);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, control, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
+  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       phone: '', dateOfBirth: '', gender: '', bloodType: '',
@@ -60,7 +64,7 @@ export default function PatientProfilePage() {
     },
   });
 
-  const dob = watch('dateOfBirth');
+  const dob = useWatch({ control, name: 'dateOfBirth' });
 
   useEffect(() => {
     if (profile) {
@@ -77,6 +81,9 @@ export default function PatientProfilePage() {
         currentMedications: profile.currentMedications,
       });
       setDocuments(profile.medicalDocuments);
+      setProfileImageFile(null);
+      setMedicalDocumentFiles([]);
+      setRemovedDocumentPaths([]);
     } else {
       reset({
         phone: '',
@@ -91,6 +98,9 @@ export default function PatientProfilePage() {
         currentMedications: [],
       });
       setDocuments([]);
+      setProfileImageFile(null);
+      setMedicalDocumentFiles([]);
+      setRemovedDocumentPaths([]);
     }
   }, [profile, reset]);
 
@@ -122,10 +132,16 @@ export default function PatientProfilePage() {
         chronicConditions: data.chronicConditions,
         currentMedications: data.currentMedications,
       },
+      profileImageFile,
+      medicalDocumentFiles: medicalDocumentFiles.map((item) => item.file),
+      removedDocumentPaths,
     }, {
       onSuccess: () => {
         // updateUserProfileStatus(true) called inside hook's onSuccess
         toast.success(profile?.id ? 'Profile updated successfully!' : 'Profile created successfully!');
+        setProfileImageFile(null);
+        setMedicalDocumentFiles([]);
+        setRemovedDocumentPaths([]);
       },
       onError: () => toast.error('Failed to update profile. Try again.'),
     });
@@ -156,7 +172,14 @@ export default function PatientProfilePage() {
             <div className="relative">
               <div className="w-20 h-20 rounded-full bg-primary-50 border-2 border-primary flex items-center justify-center overflow-hidden">
                 {previewUrl ? (
-                  <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
+                  <Image
+                    src={previewUrl}
+                    alt="Profile"
+                    width={80}
+                    height={80}
+                    unoptimized
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <span className="text-2xl font-bold text-primary">
                     {(user?.firstName?.[0] ?? profile?.firstName?.[0] ?? '')}
@@ -178,7 +201,9 @@ export default function PatientProfilePage() {
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) setPreviewUrl(URL.createObjectURL(f));
+                  if (!f) return;
+                  setPreviewUrl(URL.createObjectURL(f));
+                  setProfileImageFile(f);
                 }}
               />
             </div>
@@ -312,17 +337,28 @@ export default function PatientProfilePage() {
           <FileUpload
             documents={documents}
             onUpload={(file) => {
+              const localId = `local-${Date.now()}`;
               const newDoc: MedicalDocument = {
-                id: `doc-${Date.now()}`,
+                id: localId,
                 fileName: file.name,
                 uploadDate: new Date().toISOString().split('T')[0],
                 fileUrl: '#',
                 fileSize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
               };
               setDocuments(prev => [...prev, newDoc]);
+              setMedicalDocumentFiles(prev => [...prev, { id: localId, file }]);
               toast.success('Document uploaded.');
             }}
-            onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
+            onDelete={(id) => {
+              const target = documents.find((doc) => doc.id === id);
+              if (target?.storagePath) {
+                setRemovedDocumentPaths((prev) =>
+                  prev.includes(target.storagePath!) ? prev : [...prev, target.storagePath!],
+                );
+              }
+              setMedicalDocumentFiles((prev) => prev.filter((item) => item.id !== id));
+              setDocuments(prev => prev.filter(d => d.id !== id));
+            }}
           />
         </div>
 

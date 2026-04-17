@@ -1,6 +1,8 @@
 import SessionRepository from "../repositories/session.repository.js";
-import generateJitsiSession from "../utils/jitsiHelper.js";
+import { buildJitsiJoinUrl } from "../utils/jitsiHelper.js";
 import { ForbiddenError, InvalidInputError, NotFoundError } from "../utils/errors.utils.js";
+
+const sameUser = (ownerId, userId) => String(ownerId) === String(userId);
 
 const SessionService = {
   
@@ -18,24 +20,28 @@ const SessionService = {
     const session = await SessionRepository.findById(sessionId);
 
     // Make sure the requester owns this session
-    if (role === "patient" && session.patient_id !== parseInt(userId)) {
+    if (role === "patient" && !sameUser(session.patient_id, userId)) {
       throw new ForbiddenError("You do not have access to this session.");
     }
-    if (role === "doctor" && session.doctor_id !== parseInt(userId)) {
+    if (role === "doctor" && !sameUser(session.doctor_id, userId)) {
       throw new ForbiddenError("You do not have access to this session.");
     }
 
-    return session;
+    return {
+      ...session,
+      patient_join_url: buildJitsiJoinUrl(session.room_name),
+      doctor_join_url: buildJitsiJoinUrl(session.room_name),
+    };
   },
 
   async cancelSession(sessionId, userId, role) {
     const session = await SessionRepository.findById(sessionId);
 
     // Ownership check
-    if (role === "patient" && session.patient_id !== parseInt(userId)) {
+    if (role === "patient" && !sameUser(session.patient_id, userId)) {
       throw new ForbiddenError("You do not have access to this session.");
     }
-    if (role === "doctor" && session.doctor_id !== parseInt(userId)) {
+    if (role === "doctor" && !sameUser(session.doctor_id, userId)) {
       throw new ForbiddenError("You do not have access to this session.");
     }
 
@@ -53,7 +59,7 @@ const SessionService = {
     const session = await SessionRepository.findById(sessionId);
 
     // Only the doctor of this session can complete it
-    if (session.doctor_id !== parseInt(userId)) {
+    if (!sameUser(session.doctor_id, userId)) {
       throw new ForbiddenError("You do not have access to this session.");
     }
 

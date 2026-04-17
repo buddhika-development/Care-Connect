@@ -20,6 +20,7 @@ export interface AppointmentRaw {
 // ─── Frontend-friendly appointment ───────────────────────────────────────────
 export interface Appointment {
   id: string;
+  telemedicineSessionId: string | null;
   slotId: string;
   patientId: string;
   patientName: string;

@@ -29,8 +29,8 @@ export async function analyzePatientMedicalDocuments(
       `Sending ${documentsArray.length} medical documents for analysis...`,
     );
 
-    const response = await axios.post(
-      "http://localhost:8002/api/v1/document/analyze",
+    const response = await axios.patch(
+      "http://localhost:8002/api/document/analyze",
       {
         documents: documentsArray,
         userId: userId,

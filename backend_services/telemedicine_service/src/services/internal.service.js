@@ -12,7 +12,7 @@ const InternalService = {
       );
     }
 
-    // Generate Jitsi room
+    // Generate Jitsi room with plain join URLs (no embedded JWT token)
     const { roomName, patientJoinUrl, doctorJoinUrl } =
       generateJitsiSession(appointmentId);
 
