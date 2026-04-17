@@ -26,16 +26,22 @@ export interface MedicalDocument {
   uploadDate: string;
   fileUrl: string;
   fileSize: string;
+  storagePath?: string;
 }
 
 export interface Prescription {
   id: string;
+  patientId?: string;
   doctorName: string;
   doctorSpecialization: string;
   date: string;
+  diagnosis?: string;
   medicines: PrescriptionMedicine[];
   notes: string;
   appointmentId: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PrescriptionMedicine {

@@ -19,8 +19,19 @@ type PatientProfileRaw = {
   chronic_conditions: string[] | null;
   current_medications: string[] | null;
   profile_img_url: string | null;
-  medical_report_urls: string[] | null;
+  medical_report_urls: Array<string | { path?: string | null; signedUrl?: string | null }> | null;
 };
+
+function getFileNameFromPathOrUrl(value: string, fallback: string): string {
+  try {
+    const source = value.includes('?') ? value.split('?')[0] : value;
+    const parts = source.split('/');
+    const name = parts[parts.length - 1];
+    return decodeURIComponent(name || fallback);
+  } catch {
+    return fallback;
+  }
+}
 
 export interface PatientProfilePayload {
   email: string;
@@ -42,21 +53,43 @@ export interface PatientProfilePayload {
 export interface SavePatientProfileRequest {
   mode: 'create' | 'update';
   payload: PatientProfilePayload;
+  profileImageFile?: File | null;
+  medicalDocumentFiles?: File[];
+  removedDocumentPaths?: string[];
 }
 
 function mapPatientRawToProfile(raw: PatientProfileRaw): PatientProfile {
-  const documentUrls = raw.medical_report_urls ?? [];
-  const medicalDocuments: MedicalDocument[] = documentUrls.map((url, index) => {
-    const parts = url.split('/');
-    const fileName = decodeURIComponent(parts[parts.length - 1] || `document-${index + 1}.pdf`);
-    return {
-      id: `doc-${index + 1}`,
-      fileName,
-      uploadDate: new Date().toISOString().slice(0, 10),
-      fileUrl: url,
-      fileSize: 'Unknown',
-    };
-  });
+  const documentEntries = raw.medical_report_urls ?? [];
+  const medicalDocuments: MedicalDocument[] = documentEntries
+    .map((entry, index) => {
+      const fallback = `document-${index + 1}`;
+
+      if (typeof entry === 'string') {
+        const storagePath = entry.startsWith('http') ? undefined : entry;
+        return {
+          id: storagePath ?? `doc-${index + 1}`,
+          fileName: getFileNameFromPathOrUrl(entry, `${fallback}.pdf`),
+          uploadDate: new Date().toISOString().slice(0, 10),
+          fileUrl: storagePath ? '#' : entry,
+          fileSize: 'Unknown',
+          storagePath,
+        };
+      }
+
+      const url = entry?.signedUrl ?? '';
+      if (!url) return null;
+
+      const path = entry?.path ?? '';
+      return {
+        id: path || `doc-${index + 1}`,
+        fileName: getFileNameFromPathOrUrl(path || url, `${fallback}.pdf`),
+        uploadDate: new Date().toISOString().slice(0, 10),
+        fileUrl: url,
+        fileSize: 'Unknown',
+        storagePath: path || undefined,
+      };
+    })
+    .filter((doc): doc is MedicalDocument => Boolean(doc));
 
   return {
     id: raw.id,
@@ -124,11 +157,43 @@ export async function getPatientProfile(userId: string): Promise<PatientProfile 
 export async function savePatientProfile({
   mode,
   payload,
+  profileImageFile,
+  medicalDocumentFiles,
+  removedDocumentPaths,
 }: SavePatientProfileRequest): Promise<PatientProfile> {
   const endpoint = '/api/patients/profile';
+  const formData = new FormData();
+
+  formData.append('email', payload.email);
+  formData.append('firstName', payload.firstName);
+  formData.append('lastName', payload.lastName);
+  formData.append('contactNumber', payload.contactNumber);
+  formData.append('address', payload.address);
+  formData.append('dateOfBirth', payload.dateOfBirth);
+  formData.append('age', payload.age);
+  formData.append('gender', payload.gender);
+  formData.append('bloodType', payload.bloodType ?? '');
+  formData.append('emergencyContactName', payload.emergencyContactName ?? '');
+  formData.append('emergencyContactNumber', payload.emergencyContactNumber ?? '');
+  formData.append('allergies', JSON.stringify(payload.allergies ?? []));
+  formData.append('chronicConditions', JSON.stringify(payload.chronicConditions ?? []));
+  formData.append('currentMedications', JSON.stringify(payload.currentMedications ?? []));
+
+  if (profileImageFile) {
+    formData.append('profileImage', profileImageFile);
+  }
+
+  for (const file of medicalDocumentFiles ?? []) {
+    formData.append('medicalDocuments', file);
+  }
+
+  if ((removedDocumentPaths ?? []).length > 0) {
+    formData.append('removedDocumentPaths', JSON.stringify(removedDocumentPaths));
+  }
+
   const { data } = mode === 'create'
-    ? await apiClient.post(endpoint, payload)
-    : await apiClient.patch(endpoint, payload);
+    ? await apiClient.post(endpoint, formData)
+    : await apiClient.patch(endpoint, formData);
   return mapPatientRawToProfile(data.data as PatientProfileRaw);
 }
 

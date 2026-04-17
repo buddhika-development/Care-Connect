@@ -19,7 +19,13 @@ const createProxy = (target, pathRewrite = null) => {
           proxyReq.setHeader("x-gateway-secret", process.env.GATEWAY_SECRET);
         }
 
-        fixRequestBody(proxyReq, req);
+        const contentType = req.headers["content-type"] || "";
+        const isMultipart = contentType.includes("multipart/form-data");
+
+        // For multipart uploads, keep the original request stream untouched.
+        if (!isMultipart) {
+          fixRequestBody(proxyReq, req);
+        }
       },
 
       // ── Strip ALL CORS headers from downstream responses ──────────────────

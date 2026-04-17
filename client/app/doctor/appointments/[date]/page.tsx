@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, Play, Users, AlertCircle, Video, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Play, Users, AlertCircle, CheckCircle2, Search } from 'lucide-react';
 import { useQueries } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -16,11 +16,11 @@ import { getSessionPatientInfo } from '@/services/doctorService';
 import StatusBadge from '@/components/common/StatusBadge';
 import EmptyState from '@/components/common/EmptyState';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import TelemedicineJoinButton from '@/components/common/TelemedicineJoinButton';
 import { formatDate, formatTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { useDoctorAppointmentsUIStore } from '@/store/doctorAppointmentsStore';
-import { useState } from 'react';
 
 function Skeleton() {
   return (
@@ -33,12 +33,16 @@ function Skeleton() {
 }
 
 const STARTABLE_APPOINTMENT_STATUSES = new Set(['confirmed', 'rescheduled']);
+const RESUMABLE_APPOINTMENT_STATUSES = new Set(['ongoing']);
+const VIEWABLE_APPOINTMENT_STATUSES = new Set(['completed']);
 
 export default function DoctorDayDetailPage() {
   const { date } = useParams<{ date: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const [showCompleteDayDialog, setShowCompleteDayDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
 
   const { data: availabilities = [], isLoading: isAvailabilityLoading } = useDoctorAvailability(user?.id ?? '');
   const {
@@ -107,6 +111,31 @@ export default function DoctorDayDetailPage() {
     return map;
   }, [orderedBookedEntries, patientQueries]);
 
+  const statusOptions = useMemo(() => {
+    const uniqueStatuses = new Set<string>();
+    for (const entry of orderedBookedEntries) {
+      if (entry.appointment?.status) uniqueStatuses.add(entry.appointment.status);
+    }
+    return ['all', ...Array.from(uniqueStatuses).sort()];
+  }, [orderedBookedEntries]);
+
+  const filteredEntries = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    return orderedBookedEntries.filter((entry) => {
+      const appointment = entry.appointment!;
+      const patient = patientByAppointmentId.get(appointment.id);
+      const fullName = patient
+        ? `${patient.firstName} ${patient.lastName}`.trim().toLowerCase()
+        : `patient ${appointment.patientId.slice(0, 6)}`.toLowerCase();
+
+      const matchesSearch = !term || fullName.includes(term);
+      const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [orderedBookedEntries, patientByAppointmentId, searchTerm, statusFilter]);
+
   const handleStartSession = (appointmentId: string) => {
     if (selectedAvailability?.status !== 'ongoing') {
       toast.error('Start the day before starting individual patient sessions.');
@@ -123,6 +152,10 @@ export default function DoctorDayDetailPage() {
         toast.error(message);
       },
     });
+  };
+
+  const handleOpenSession = (appointmentId: string) => {
+    router.push(`/doctor/session/${appointmentId}`);
   };
 
   const handleStartDay = () => {
@@ -239,6 +272,34 @@ export default function DoctorDayDetailPage() {
         </div>
       )}
 
+      {orderedBookedEntries.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl shadow-card p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="md:col-span-2 relative">
+              <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search patient by name"
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary capitalize"
+            >
+              {statusOptions.map((status) => (
+                <option key={status} value={status} className="capitalize">
+                  {status === 'all' ? 'All statuses' : status}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <Skeleton />
       ) : isError ? (
@@ -261,14 +322,38 @@ export default function DoctorDayDetailPage() {
           description="No patient has booked a slot for this availability date yet."
           action={{ label: 'Back to Appointments', onClick: () => router.push('/doctor/appointments') }}
         />
+      ) : filteredEntries.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="No matching patients"
+          description="Try changing the search text or status filter."
+        />
       ) : (
         <div className="space-y-3">
-          {orderedBookedEntries.map((entry, idx) => {
+          {filteredEntries.map((entry, idx) => {
             const appointment = entry.appointment!;
             const patient = patientByAppointmentId.get(appointment.id);
             const canStartSession =
               selectedAvailability.status === 'ongoing' &&
               STARTABLE_APPOINTMENT_STATUSES.has(appointment.status);
+            const canResumeSession =
+              selectedAvailability.status === 'ongoing' &&
+              RESUMABLE_APPOINTMENT_STATUSES.has(appointment.status);
+            const canViewSession = VIEWABLE_APPOINTMENT_STATUSES.has(appointment.status);
+            const canOpenSession = canStartSession || canResumeSession || canViewSession;
+            const canJoinVideo = selectedAvailability.consultationType === 'online' && appointment.status === 'ongoing';
+
+            const actionLabel = canResumeSession
+              ? 'Resume Session'
+              : canStartSession
+                ? 'Start Session'
+                : canViewSession
+                  ? 'View Details'
+                  : 'Session Locked';
+
+            const actionHandler = canResumeSession || canViewSession
+              ? () => handleOpenSession(appointment.id)
+              : () => handleStartSession(appointment.id);
 
             return (
               <div key={appointment.id} className="bg-card rounded-2xl border border-border shadow-card p-5">
@@ -285,25 +370,29 @@ export default function DoctorDayDetailPage() {
                         {formatTime(entry.slot.startTime)} – {formatTime(entry.slot.endTime)}
                       </span>
                       <StatusBadge status={appointment.status} size="sm" />
+                      {selectedAvailability.consultationType === 'online' && !appointment.telemedicineSessionId && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-warning-light text-warning font-medium">
+                          Session link missing
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    {selectedAvailability.consultationType === 'online' && (
-                      <button
-                        onClick={() => router.push(`/telemedicine/room/${appointment.id}`)}
+                    {canJoinVideo && (
+                      <TelemedicineJoinButton
+                        sessionId={appointment.telemedicineSessionId}
+                        role="doctor"
+                        label="Join Video"
                         className="flex items-center gap-1.5 px-3 py-2 border border-primary text-primary bg-primary-50 hover:bg-primary hover:text-white text-xs font-medium rounded-xl transition-all"
-                      >
-                        <Video className="w-3.5 h-3.5" />
-                        Join Video
-                      </button>
+                      />
                     )}
                     <button
-                      onClick={() => handleStartSession(appointment.id)}
-                      disabled={!canStartSession || isStartingSession}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-medium rounded-xl transition-all disabled:opacity-60"
+                      onClick={actionHandler}
+                      disabled={!canOpenSession || isStartingSession}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-medium rounded-xl transition-all disabled:opacity-60 disabled:hover:bg-primary"
                     >
                       <Play className="w-3.5 h-3.5" />
-                      Start Session
+                      {actionLabel}
                     </button>
                   </div>
                 </div>

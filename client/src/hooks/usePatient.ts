@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export const patientKeys = {
   profile: (userId: string) => ['patient', 'profile', userId] as const,
+  profileById: (userId: string) => ['patient', 'profile-by-id', userId] as const,
   prescriptions: (patientId: string) => ['patient', 'prescriptions', patientId] as const,
   documents: (patientId: string) => ['patient', 'documents', patientId] as const,
   activity: (patientId: string) => ['patient', 'activity', patientId] as const,
@@ -17,6 +18,14 @@ export function usePatientProfile() {
   const userId = user?.id ?? '';
   return useQuery({
     queryKey: patientKeys.profile(userId),
+    queryFn: () => getPatientProfile(userId),
+    enabled: !!userId,
+  });
+}
+
+export function usePatientProfileById(userId: string) {
+  return useQuery({
+    queryKey: patientKeys.profileById(userId),
     queryFn: () => getPatientProfile(userId),
     enabled: !!userId,
   });

@@ -141,6 +141,23 @@ export async function CreatePatientProfileUsecase(
       await analyzePatientMedicalDocuments(userId, medicalReportPaths);
     }
 
+    const parseArrayFields = (value) => {
+      if (value === undefined) return [];
+      if (Array.isArray(value)) return value;
+
+      if (value === "" || value === null) return [];
+
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (err) {
+        return String(value)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+    };
+
     const patientProfileData = {
       user_id: userId,
       first_name: firstName,
@@ -156,9 +173,9 @@ export async function CreatePatientProfileUsecase(
       medical_report_urls: medicalReportPaths, // storing paths, not signed URLs
       emergency_contact_name: emergencyContactName || null,
       emergency_contact_no: emergencyContactNumber || null,
-      allergies: allergies || [],
-      chronic_conditions: chronicConditions || [],
-      current_medications: currentMedications || [],
+      allergies: parseArrayFields(allergies),
+      chronic_conditions: parseArrayFields(chronicConditions),
+      current_medications: parseArrayFields(currentMedications),
     };
 
     if (patient) {

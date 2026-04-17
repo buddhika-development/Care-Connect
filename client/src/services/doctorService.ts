@@ -9,6 +9,7 @@ import {
   transformDoctorFull,
 } from '@/types/doctor';
 import { SessionPatientInfo } from '@/types/appointment';
+import { Prescription } from '@/types/patient';
 
 type DoctorProfileRaw = {
   id: string;
@@ -56,8 +57,70 @@ type DoctorPatientMedicalRecordRaw = {
   allergies: string[] | null;
   chronic_conditions: string[] | null;
   current_medications: string[] | null;
-  medical_report_urls: string[] | null;
+  medical_report_urls: Array<string | { path?: string | null; signedUrl?: string | null }> | null;
 };
+
+type DoctorPrescriptionRaw = {
+  id: string;
+  patient_id: string;
+  appointment_id: string;
+  diagnosis: string;
+  medications: Array<{
+    medicine_name?: string;
+    name?: string;
+    dosage?: string;
+    dosage_mg?: number | string;
+    dosage_unit?: string;
+    frequency?:
+      | string
+      | string[]
+      | {
+          morning?: boolean;
+          day?: boolean;
+          night?: boolean;
+          custom?: string;
+        };
+    duration?: string;
+    instruction_type?: 'before_meal' | 'after_meal' | 'with_meal' | 'before_sleep' | 'custom' | string;
+    instruction_text?: string;
+    instruction?: string;
+    instructions?: string;
+  }>;
+  notes: string | null;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+export interface PrescriptionFrequencySelection {
+  morning: boolean;
+  day: boolean;
+  night: boolean;
+  custom?: string;
+}
+
+export type PrescriptionInstructionType =
+  | 'before_meal'
+  | 'after_meal'
+  | 'with_meal'
+  | 'before_sleep'
+  | 'custom';
+
+export interface CreatePrescriptionMedicineRequest {
+  name: string;
+  dosageMg: number;
+  frequency: PrescriptionFrequencySelection;
+  duration: string;
+  instructionType: PrescriptionInstructionType;
+  customInstruction?: string;
+}
+
+export interface CreateAppointmentPrescriptionRequest {
+  appointmentId: string;
+  diagnosis: string;
+  medications: CreatePrescriptionMedicineRequest[];
+  notes?: string;
+}
 
 export interface CreateDoctorAvailabilityRequest {
   date: string;
@@ -127,6 +190,28 @@ function mapPatientMedicalRecordToSessionPatient(
   const [firstName, ...rest] = fullName.length > 0 ? fullName.split(' ') : ['Patient'];
   const lastName = rest.join(' ');
 
+  const medicalDocuments = (raw.medical_report_urls ?? [])
+    .map((entry, index) => {
+      if (typeof entry === 'string') {
+        return {
+          id: `med-doc-${index + 1}`,
+          fileName: decodeURIComponent((entry.split('?')[0].split('/').pop() || `report-${index + 1}`)),
+          fileUrl: entry,
+        };
+      }
+
+      const url = entry?.signedUrl ?? '';
+      if (!url) return null;
+
+      const sourceForName = entry?.path ?? url;
+      return {
+        id: `med-doc-${index + 1}`,
+        fileName: decodeURIComponent((sourceForName.split('?')[0].split('/').pop() || `report-${index + 1}`)),
+        fileUrl: url,
+      };
+    })
+    .filter((doc): doc is { id: string; fileName: string; fileUrl: string } => Boolean(doc));
+
   return {
     id: raw.patient_user_id,
     firstName,
@@ -138,12 +223,90 @@ function mapPatientMedicalRecordToSessionPatient(
     allergies: raw.allergies ?? [],
     chronicConditions: raw.chronic_conditions ?? [],
     currentMedications: raw.current_medications ?? [],
-    medicalDocuments: (raw.medical_report_urls ?? []).map((url, index) => ({
-      id: `med-doc-${index + 1}`,
-      fileName: decodeURIComponent(url.split('/').pop() || `report-${index + 1}`),
-      fileUrl: url,
-    })),
+    medicalDocuments,
     previousAppointments: [],
+  };
+}
+
+function mapPrescriptionRawToPrescription(
+  raw: DoctorPrescriptionRaw,
+  doctorName: string,
+  doctorSpecialization: string,
+): Prescription {
+  const instructionLabelByType: Record<string, string> = {
+    before_meal: 'Before meal',
+    after_meal: 'After meal',
+    with_meal: 'With meal',
+    before_sleep: 'Before sleep',
+  };
+
+  const getFrequencyLabel = (frequency: DoctorPrescriptionRaw['medications'][number]['frequency']): string => {
+    if (!frequency) return '';
+
+    if (typeof frequency === 'string') return frequency;
+
+    if (Array.isArray(frequency)) {
+      return frequency.join(', ');
+    }
+
+    const parts: string[] = [];
+    if (frequency.morning) parts.push('Morning');
+    if (frequency.day) parts.push('Day');
+    if (frequency.night) parts.push('Night');
+    if (frequency.custom && frequency.custom.trim()) parts.push(frequency.custom.trim());
+    return parts.join(', ');
+  };
+
+  const getInstructionLabel = (medicine: DoctorPrescriptionRaw['medications'][number]): string => {
+    if (medicine.instructions && medicine.instructions.trim()) return medicine.instructions.trim();
+    if (medicine.instruction && medicine.instruction.trim()) return medicine.instruction.trim();
+
+    if (medicine.instruction_type === 'custom') {
+      return medicine.instruction_text?.trim() || '';
+    }
+
+    if (medicine.instruction_text && medicine.instruction_text.trim()) {
+      return medicine.instruction_text.trim();
+    }
+
+    if (medicine.instruction_type && instructionLabelByType[medicine.instruction_type]) {
+      return instructionLabelByType[medicine.instruction_type];
+    }
+
+    return '';
+  };
+
+  const getDosageLabel = (medicine: DoctorPrescriptionRaw['medications'][number]): string => {
+    if (medicine.dosage_mg !== undefined && medicine.dosage_mg !== null && medicine.dosage_mg !== '') {
+      const dosageValue = typeof medicine.dosage_mg === 'string' ? Number(medicine.dosage_mg) : medicine.dosage_mg;
+      const unit = medicine.dosage_unit || 'mg';
+      if (!Number.isNaN(dosageValue)) {
+        return `${dosageValue} ${unit}/day`;
+      }
+    }
+
+    return medicine.dosage ?? '';
+  };
+
+  return {
+    id: raw.id,
+    patientId: raw.patient_id,
+    doctorName,
+    doctorSpecialization,
+    date: raw.created_at.slice(0, 10),
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+    diagnosis: raw.diagnosis,
+    medicines: (raw.medications ?? []).map((medicine) => ({
+      name: medicine.medicine_name ?? medicine.name ?? 'Medicine',
+      dosage: getDosageLabel(medicine),
+      frequency: getFrequencyLabel(medicine.frequency),
+      duration: medicine.duration ?? '',
+      instructions: getInstructionLabel(medicine),
+    })),
+    notes: raw.notes ?? '',
+    appointmentId: raw.appointment_id,
+    status: raw.status,
   };
 }
 
@@ -293,6 +456,95 @@ export async function getSessionPatientInfo(
   } catch {
     return null;
   }
+}
+
+export async function getAppointmentPrescriptions(
+  appointmentId: string,
+  doctorName: string,
+  doctorSpecialization: string,
+): Promise<Prescription[]> {
+  const { data } = await apiClient.get(`/api/doctors/prescriptions/appointment/${appointmentId}`);
+  const rows: DoctorPrescriptionRaw[] = data.data ?? [];
+  return rows.map((row) => mapPrescriptionRawToPrescription(row, doctorName, doctorSpecialization));
+}
+
+export async function getDoctorPrescriptions(
+  doctorName: string,
+  doctorSpecialization: string,
+): Promise<Prescription[]> {
+  const { data } = await apiClient.get('/api/doctors/prescriptions');
+  const rows: DoctorPrescriptionRaw[] = data.data ?? [];
+  return rows.map((row) => mapPrescriptionRawToPrescription(row, doctorName, doctorSpecialization));
+}
+
+export async function createAppointmentPrescription(
+  request: CreateAppointmentPrescriptionRequest,
+  doctorName: string,
+  doctorSpecialization: string,
+): Promise<Prescription> {
+  const instructionLabelByType: Record<string, string> = {
+    before_meal: 'Before meal',
+    after_meal: 'After meal',
+    with_meal: 'With meal',
+    before_sleep: 'Before sleep',
+  };
+
+  const payload = {
+    diagnosis: request.diagnosis,
+    medications: request.medications.map((medicine) => ({
+      medicine_name: medicine.name,
+      dosage_mg: medicine.dosageMg,
+      dosage_unit: 'mg',
+      dosage: `${medicine.dosageMg} mg/day`,
+      frequency: {
+        morning: medicine.frequency.morning,
+        day: medicine.frequency.day,
+        night: medicine.frequency.night,
+        custom: medicine.frequency.custom?.trim() || undefined,
+      },
+      frequency_text: [
+        medicine.frequency.morning ? 'Morning' : '',
+        medicine.frequency.day ? 'Day' : '',
+        medicine.frequency.night ? 'Night' : '',
+        medicine.frequency.custom?.trim() || '',
+      ].filter(Boolean).join(', '),
+      duration: medicine.duration,
+      instruction_type: medicine.instructionType,
+      instruction_text:
+        medicine.instructionType === 'custom'
+          ? medicine.customInstruction?.trim() || ''
+          : instructionLabelByType[medicine.instructionType] || '',
+      instructions:
+        medicine.instructionType === 'custom'
+          ? medicine.customInstruction?.trim() || ''
+          : instructionLabelByType[medicine.instructionType] || '',
+    })),
+    notes: request.notes ?? '',
+  };
+
+  const { data } = await apiClient.post(
+    `/api/doctors/prescriptions/appointment/${request.appointmentId}`,
+    payload,
+  );
+
+  return mapPrescriptionRawToPrescription(
+    data.data as DoctorPrescriptionRaw,
+    doctorName,
+    doctorSpecialization,
+  );
+}
+
+export async function cancelPrescription(
+  prescriptionId: string,
+  doctorName: string,
+  doctorSpecialization: string,
+): Promise<Prescription> {
+  const { data } = await apiClient.patch(`/api/doctors/prescriptions/${prescriptionId}/cancel`);
+  return mapPrescriptionRawToPrescription(
+    data.data as DoctorPrescriptionRaw,
+    doctorName,
+    doctorSpecialization,
+  );
 }
 
 // TODO: Replace with real API endpoint

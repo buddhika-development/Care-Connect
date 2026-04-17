@@ -1,15 +1,18 @@
 import SessionRepository from "../repositories/session.repository.js";
 import { ForbiddenError, InvalidInputError } from "../utils/errors.utils.js";
+import { buildJitsiJoinUrl, generateJitsiToken } from "../utils/jitsiHelper.js";
+
+const sameUser = (ownerId, userId) => String(ownerId) === String(userId);
 
 const RoomService = {
   async joinRoom(sessionId, userId, role) {
     const session = await SessionRepository.findById(sessionId);
 
     // Ownership check
-    if (role === "patient" && session.patient_id !== parseInt(userId)) {
+    if (role === "patient" && !sameUser(session.patient_id, userId)) {
       throw new ForbiddenError("You do not have access to this session.");
     }
-    if (role === "doctor" && session.doctor_id !== parseInt(userId)) {
+    if (role === "doctor" && !sameUser(session.doctor_id, userId)) {
       throw new ForbiddenError("You do not have access to this session.");
     }
 
@@ -22,9 +25,11 @@ const RoomService = {
     }
 
     // Return the correct URL based on role
+    const token = generateJitsiToken(session.room_name, role);
+
     return {
       roomName: session.room_name,
-      joinUrl: role === "patient" ? session.patient_join_url : session.doctor_join_url,
+      joinUrl: buildJitsiJoinUrl(session.room_name, token),
       status: session.status,
     };
   },
@@ -33,7 +38,7 @@ const RoomService = {
     const session = await SessionRepository.findById(sessionId);
 
     // Only the doctor of this session can start it
-    if (session.doctor_id !== parseInt(userId)) {
+    if (!sameUser(session.doctor_id, userId)) {
       throw new ForbiddenError("You do not have access to this session.");
     }
 

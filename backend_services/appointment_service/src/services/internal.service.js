@@ -108,7 +108,7 @@ const InternalService = {
   },
 
   async autoCancelExpiredAppointments() {
-    const cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const cutoffTime = new Date(Date.now() - 5 * 60 * 1000).toISOString(); // 5 minutes before the current time
     const expiredAppointments =
       await AppointmentRepository.findPendingExpired(cutoffTime);
 

@@ -3,18 +3,18 @@
 import { useState } from 'react';
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Calendar, Video, AlertCircle, Clock, Stethoscope, Activity } from 'lucide-react';
+import { Search, Calendar, AlertCircle, Clock, Stethoscope, Activity } from 'lucide-react';
 import { useAppointments, useCancelAppointment } from '@/hooks/useAppointments';
 import { useDoctors } from '@/hooks/useDoctor';
 import StatusBadge from '@/components/common/StatusBadge';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import EmptyState from '@/components/common/EmptyState';
+import TelemedicineJoinButton from '@/components/common/TelemedicineJoinButton';
 import { Appointment } from '@/types/appointment';
 import { AppointmentStatus } from '@/types/common';
 import { formatDateTime, formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { differenceInHours, parseISO } from 'date-fns';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { transformAvailability } from '@/types/doctor';
 
@@ -210,6 +210,11 @@ export default function PatientAppointmentsPage() {
                   <span className={cn('px-2.5 py-1 rounded-full font-medium', apt.status === 'ongoing' ? 'bg-primary-100 text-primary-dark' : 'bg-secondary text-text-secondary')}>
                     Session {getSessionStateLabel(apt, dayStatus as 'scheduled' | 'ongoing' | 'completed')}
                   </span>
+                  {isOnline && !apt.telemedicineSessionId && (
+                    <span className="px-2.5 py-1 rounded-full font-medium bg-warning-light text-warning">
+                      Video link pending
+                    </span>
+                  )}
                   {selectedSlot && (
                     <span className={cn('px-2.5 py-1 rounded-full font-medium', isCurrentSlot ? 'bg-success-light text-success' : 'bg-secondary text-text-secondary')}>
                       Slot {selectedSlot.startTime} - {selectedSlot.endTime}
@@ -267,13 +272,12 @@ export default function PatientAppointmentsPage() {
                   )}
 
                   {(apt.status === 'confirmed' || apt.status === 'ongoing') && isOnline && (
-                    <Link
-                      href={`/telemedicine/room/${apt.id}`}
+                    <TelemedicineJoinButton
+                      sessionId={apt.telemedicineSessionId}
+                      role="patient"
+                      label="Join Session"
                       className="px-4 py-2 text-sm rounded-xl bg-primary hover:bg-primary-dark text-white font-medium transition-all flex items-center gap-1.5"
-                    >
-                      <Video className="w-3.5 h-3.5" />
-                      Join Session
-                    </Link>
+                    />
                   )}
                 </div>
               </div>

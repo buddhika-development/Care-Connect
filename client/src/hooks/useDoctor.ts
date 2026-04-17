@@ -3,12 +3,15 @@ import {
   getDoctorProfile, saveDoctorProfile, getDoctors, getDoctorAvailability,
   createAvailability, updateAvailability, cancelAvailability,
   markAvailabilityAsOngoing, markAvailabilityAsCompleted,
-  getDoctorDaySchedules, getSessionPatientInfo,
+  getDoctorDaySchedules, getAppointmentPrescriptions,
+  getDoctorPrescriptions,
+  createAppointmentPrescription, cancelPrescription,
   getAllDoctorsAdmin, verifyDoctor,
 } from '@/services/doctorService';
 import type {
   CreateDoctorAvailabilityRequest,
   UpdateDoctorAvailabilityRequest,
+  CreateAppointmentPrescriptionRequest,
 } from '@/services/doctorService';
 import { useAuth } from '@/context/AuthContext';
 
@@ -19,6 +22,8 @@ export const doctorKeys = {
   availability: (doctorId: string) => ['doctor', 'availability', doctorId] as const,
   daySchedules: (doctorId: string) => ['doctor', 'day-schedules', doctorId] as const,
   sessionPatient: (appointmentId: string) => ['doctor', 'session-patient', appointmentId] as const,
+  appointmentPrescriptions: (appointmentId: string) => ['doctor', 'appointment-prescriptions', appointmentId] as const,
+  doctorPrescriptions: (doctorId: string) => ['doctor', 'prescriptions', doctorId] as const,
   adminList: () => ['doctor', 'admin', 'list'] as const,
 };
 
@@ -148,11 +153,61 @@ export function useDoctorDaySchedules() {
   });
 }
 
-export function useSessionPatientInfo(appointmentId: string) {
+export function useAppointmentPrescriptions(
+  appointmentId: string,
+  doctorName: string,
+  doctorSpecialization: string,
+  enabled = true,
+) {
   return useQuery({
-    queryKey: doctorKeys.sessionPatient(appointmentId),
-    queryFn: () => getSessionPatientInfo(appointmentId),
-    enabled: !!appointmentId,
+    queryKey: doctorKeys.appointmentPrescriptions(appointmentId),
+    queryFn: () => getAppointmentPrescriptions(appointmentId, doctorName, doctorSpecialization),
+    enabled: !!appointmentId && enabled,
+  });
+}
+
+export function useDoctorPrescriptions(
+  doctorId: string,
+  doctorName: string,
+  doctorSpecialization: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: doctorKeys.doctorPrescriptions(doctorId),
+    queryFn: () => getDoctorPrescriptions(doctorName, doctorSpecialization),
+    enabled: !!doctorId && enabled,
+  });
+}
+
+export function useCreateAppointmentPrescription(
+  doctorName: string,
+  doctorSpecialization: string,
+) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: CreateAppointmentPrescriptionRequest) =>
+      createAppointmentPrescription(request, doctorName, doctorSpecialization),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: doctorKeys.appointmentPrescriptions(variables.appointmentId) });
+      qc.invalidateQueries({ queryKey: ['doctor', 'prescriptions'] });
+    },
+  });
+}
+
+export function useCancelPrescription(
+  doctorName: string,
+  doctorSpecialization: string,
+) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ prescriptionId, appointmentId }: { prescriptionId: string; appointmentId: string }) =>
+      cancelPrescription(prescriptionId, doctorName, doctorSpecialization).then((result) => ({ result, appointmentId })),
+    onSuccess: ({ appointmentId }) => {
+      qc.invalidateQueries({ queryKey: doctorKeys.appointmentPrescriptions(appointmentId) });
+      qc.invalidateQueries({ queryKey: ['doctor', 'prescriptions'] });
+    },
   });
 }
 

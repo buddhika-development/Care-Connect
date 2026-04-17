@@ -9,28 +9,28 @@ router.get(
   "/",
   extractUser,
   authorize("patient", "doctor"),
-  SessionController.getSessions
+  SessionController.getSessions,
 );
 
 router.get(
   "/:sessionId",
   extractUser,
   authorize("patient", "doctor"),
-  SessionController.getSessionById
+  SessionController.getSessionById,
 );
 
 router.patch(
   "/:sessionId/cancel",
   extractUser,
   authorize("patient", "doctor"),
-  SessionController.cancelSession
+  SessionController.cancelSession,
 );
 
 router.patch(
   "/:sessionId/complete",
   extractUser,
   authorize("doctor"),
-  SessionController.completeSession
+  SessionController.completeSession,
 );
 
 export default router;
