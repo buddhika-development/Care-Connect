@@ -23,9 +23,9 @@ function DashboardSkeleton() {
 export default function DoctorDashboard() {
   const { user } = useAuth();
 
-  const { data: profile, isLoading } = useDoctorProfile();
-  const { data: schedules } = useDoctorDaySchedules();
-  const { data: appointments } = useAppointments();
+  const { data: profile, isLoading: profileLoading } = useDoctorProfile();
+  const { data: schedules, isLoading: schedulesLoading } = useDoctorDaySchedules();
+  const { data: appointments, isLoading: appointmentsLoading } = useAppointments();
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -40,7 +40,7 @@ export default function DoctorDashboard() {
   const totalPatients = appointments?.length ?? 0;
   const todayCount = todaySchedule?.totalPatients ?? 0;
 
-  if (isLoading) return <DashboardSkeleton />;
+  if (profileLoading || schedulesLoading || appointmentsLoading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6">
