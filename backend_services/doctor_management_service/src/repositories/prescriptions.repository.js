@@ -41,6 +41,33 @@ export const getPrescriptionsByDoctorProfileId = async (doctorProfileId) => {
   return data;
 };
 
+// Get all prescriptions for a patient user id
+export const getPrescriptionsByPatientId = async (patientId) => {
+  const { data, error } = await doctorDb
+    .from("prescriptions")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return data;
+};
+
+// Get doctor profile details for a set of doctor profile ids
+export const getDoctorProfilesByIds = async (doctorProfileIds) => {
+  if (!doctorProfileIds || doctorProfileIds.length === 0) return [];
+
+  const { data, error } = await doctorDb
+    .from("doctor_profiles")
+    .select("id, first_name, last_name, specialization")
+    .in("id", doctorProfileIds);
+
+  if (error) throw error;
+
+  return data;
+};
+
 // Get all prescriptions for a particular appointment by this doctor
 export const getPrescriptionsByAppointmentId = async (
   appointmentId,

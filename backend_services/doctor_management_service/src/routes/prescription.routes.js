@@ -3,12 +3,14 @@ import extractUser from "../middleware/extractUser.middleware.js";
 import {
   cancelPrescriptionController,
   createPrescriptionController,
+  getMyPatientPrescriptionsController,
   getMyPrescriptionsController,
   getPrescriptionsByAppointmentController,
 } from "../controllers/prescription.controller.js";
 
 const router = express.Router();
 
+router.get("/patient/my", extractUser, getMyPatientPrescriptionsController);
 router.post(
   "/appointment/:appointmentId",
   extractUser,

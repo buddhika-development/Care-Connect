@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -156,6 +155,7 @@ export default function PatientProfilePage() {
   );
 
   const inputClass = 'w-full px-4 py-2.5 rounded-xl border border-border bg-background text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm disabled:bg-secondary disabled:text-text-secondary disabled:cursor-not-allowed';
+  const profileImageSrc = previewUrl || profile?.profileImage || null;
 
   return (
     <div className="max-w-2xl">
@@ -171,13 +171,10 @@ export default function PatientProfilePage() {
           <div className="flex items-center gap-5">
             <div className="relative">
               <div className="w-20 h-20 rounded-full bg-primary-50 border-2 border-primary flex items-center justify-center overflow-hidden">
-                {previewUrl ? (
-                  <Image
-                    src={previewUrl}
+                {profileImageSrc ? (
+                  <img
+                    src={profileImageSrc}
                     alt="Profile"
-                    width={80}
-                    height={80}
-                    unoptimized
                     className="w-full h-full object-cover"
                   />
                 ) : (

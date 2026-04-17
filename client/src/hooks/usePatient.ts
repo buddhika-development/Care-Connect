@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getPatientProfile, savePatientProfile, getPrescriptions,
-  getMedicalDocuments, getRecentActivity, uploadMedicalDocument,
+  getMedicalDocuments, getRecentActivity,
 } from '@/services/patientService';
 import { useAuth } from '@/context/AuthContext';
 
@@ -74,14 +74,3 @@ export function useRecentActivity() {
   });
 }
 
-export function useUploadMedicalDocument() {
-  const qc = useQueryClient();
-  const { user } = useAuth();
-  const userId = user?.id ?? '';
-  return useMutation({
-    mutationFn: (file: File) => uploadMedicalDocument(file),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: patientKeys.documents(userId) });
-    },
-  });
-}
