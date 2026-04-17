@@ -4,6 +4,7 @@ import { Users, Calendar, CreditCard, Stethoscope, TrendingUp, ShieldCheck } fro
 import { useAdminAppointments } from '@/hooks/useAppointments';
 import { useAllDoctorsAdmin } from '@/hooks/useDoctor';
 import { usePaymentSummary } from '@/hooks/usePayments';
+import UserSummaryCard from '@/components/common/UserSummaryCard';
 import StatsCard from '@/components/common/StatsCard';
 import StatusBadge from '@/components/common/StatusBadge';
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -48,6 +49,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <UserSummaryCard />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
