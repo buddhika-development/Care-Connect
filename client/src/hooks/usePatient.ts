@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getPatientProfile, savePatientProfile, getPrescriptions,
-  getMedicalDocuments, getRecentActivity, uploadMedicalDocument,
+  getMedicalDocuments, getRecentActivity, uploadMedicalDocument, getMedicalDocumentSummary,
+  normalizeMedicalDocumentIdentifier,
 } from '@/services/patientService';
 import { useAuth } from '@/context/AuthContext';
 
@@ -10,6 +11,7 @@ export const patientKeys = {
   profileById: (userId: string) => ['patient', 'profile-by-id', userId] as const,
   prescriptions: (patientId: string) => ['patient', 'prescriptions', patientId] as const,
   documents: (patientId: string) => ['patient', 'documents', patientId] as const,
+  documentSummary: (documentId: string) => ['patient', 'document-summary', documentId] as const,
   activity: (patientId: string) => ['patient', 'activity', patientId] as const,
 };
 
@@ -61,6 +63,16 @@ export function useMedicalDocuments() {
     queryKey: patientKeys.documents(userId),
     queryFn: () => getMedicalDocuments(userId),
     enabled: !!userId,
+  });
+}
+
+export function useMedicalDocumentSummary(documentId: string, enabled = true) {
+  const normalizedDocumentId = normalizeMedicalDocumentIdentifier(documentId);
+
+  return useQuery({
+    queryKey: patientKeys.documentSummary(normalizedDocumentId),
+    queryFn: () => getMedicalDocumentSummary(normalizedDocumentId),
+    enabled: enabled && !!normalizedDocumentId,
   });
 }
 

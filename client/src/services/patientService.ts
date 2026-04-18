@@ -1,5 +1,11 @@
 import { apiClient } from '@/lib/axios';
-import { PatientProfile, Prescription, MedicalDocument, ActivityItem } from '@/types/patient';
+import {
+  PatientProfile,
+  Prescription,
+  MedicalDocument,
+  ActivityItem,
+  MedicalDocumentSummary,
+} from '@/types/patient';
 
 type PatientProfileRaw = {
   id: string;
@@ -58,10 +64,36 @@ export interface SavePatientProfileRequest {
   removedDocumentPaths?: string[];
 }
 
+type MedicalDocumentSummaryRaw = {
+  id: string;
+  user_id: string;
+  document_id: string;
+  document_summary: string;
+  created_datetime: string;
+  updated_datetime: string;
+};
+
+function normalizeMedicalDocumentSummary(raw: MedicalDocumentSummaryRaw): MedicalDocumentSummary {
+  return {
+    id: raw.id,
+    userId: raw.user_id,
+    documentId: raw.document_id,
+    documentSummary: raw.document_summary,
+    createdDatetime: raw.created_datetime,
+    updatedDatetime: raw.updated_datetime,
+  };
+}
+
+export function normalizeMedicalDocumentIdentifier(documentIdentifier: string): string {
+  const trimmedIdentifier = documentIdentifier.trim();
+  const fileName = trimmedIdentifier.split('/').pop() ?? trimmedIdentifier;
+  return fileName.replace(/\.pdf$/i, '');
+}
+
 function mapPatientRawToProfile(raw: PatientProfileRaw): PatientProfile {
   const documentEntries = raw.medical_report_urls ?? [];
-  const medicalDocuments: MedicalDocument[] = documentEntries
-    .map((entry, index) => {
+  const medicalDocuments = documentEntries
+    .map((entry, index): MedicalDocument | null => {
       const fallback = `document-${index + 1}`;
 
       if (typeof entry === 'string') {
@@ -89,7 +121,7 @@ function mapPatientRawToProfile(raw: PatientProfileRaw): PatientProfile {
         storagePath: path || undefined,
       };
     })
-    .filter((doc): doc is MedicalDocument => Boolean(doc));
+    .filter((doc): doc is MedicalDocument => doc !== null);
 
   return {
     id: raw.id,
@@ -220,6 +252,16 @@ export async function uploadMedicalDocument(file: File): Promise<MedicalDocument
     fileUrl: '#',
     fileSize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
   };
+}
+
+export async function getMedicalDocumentSummary(documentId: string): Promise<MedicalDocumentSummary | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_DOCUMENT_API_URL || 'http://localhost:8002';
+  const normalizedDocumentId = normalizeMedicalDocumentIdentifier(documentId);
+  const { data } = await apiClient.get(`${baseUrl}/api/document/${normalizedDocumentId}/summary`);
+
+  if (!data?.document_summary) return null;
+
+  return normalizeMedicalDocumentSummary(data as MedicalDocumentSummaryRaw);
 }
 
 // TODO: Replace with real API endpoint

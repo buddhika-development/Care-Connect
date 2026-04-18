@@ -29,6 +29,15 @@ export interface MedicalDocument {
   storagePath?: string;
 }
 
+export interface MedicalDocumentSummary {
+  id: string;
+  userId: string;
+  documentId: string;
+  documentSummary: string;
+  createdDatetime: string;
+  updatedDatetime: string;
+}
+
 export interface Prescription {
   id: string;
   patientId?: string;
