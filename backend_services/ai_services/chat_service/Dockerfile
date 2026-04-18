@@ -12,11 +12,9 @@ RUN uv sync --frozen --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Add this
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
 
-# Change CMD to use entrypoint
 CMD ["./entrypoint.sh"]

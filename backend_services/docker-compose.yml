@@ -1,0 +1,255 @@
+version: '3.8'
+
+services:
+  # ==================== DATABASE ====================
+  postgres:
+    image: postgres:16-alpine
+    container_name: care-connect-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 2001219
+      POSTGRES_DB: care_connect
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - care-connect
+
+  # ==================== AI SERVICES ====================
+  chat_service:
+    build:
+      context: ./ai_services/chat_service
+      dockerfile: Dockerfile
+    container_name: chat-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      FASTAPI_ENV: development
+      PORT: 8000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql+asyncpg://postgres:2001219@postgres:5432/care_connect
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-AIzaSyD8CSvxO-FNe1XGKxclM-IOClk2MaxdSBg}
+      GOOGLE_CHAT_MODEL: gemini-2.5-flash-lite
+      GOOGLE_EMBEDING_MODEL: gemini-embedding-001
+      GOOGLE_DECISION_MODEL: gemini-2.5-flash
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-aSPz6TsXp47yNU5hhYVXK4cUCzS4qrHK}
+      MISTRAL_EMBEDING_MODEL: mistral-embed
+      MISTRAL_CHAT_MODEL: mistral-small-2506
+      MISTRAL_DECISION_MODEL: mistral-large-2512
+    ports:
+      - "8000:8000"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+  summarization_service:
+    build:
+      context: ./ai_services/summerization_service
+      dockerfile: Dockerfile
+    container_name: summarization-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      FASTAPI_ENV: development
+      PORT: 8002
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql+asyncpg://postgres:2001219@postgres:5432/care_connect
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-AIzaSyD8CSvxO-FNe1XGKxclM-IOClk2MaxdSBg}
+      GOOGLE_SUMMARIZATION_MODEL: gemini-2.5-flash
+      PATIENT_SERVICE_URL: http://patient_management_service:3001
+      DOCTOR_SERVICE_URL: http://doctor_management_service:3002
+      GOOGLE_EMBEDDING_MODEL: gemini-embedding-001
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-aSPz6TsXp47yNU5hhYVXK4cUCzS4qrHK}
+      MISTRAL_EMBEDING_MODEL: mistral-embed
+      MISTRAL_CHAT_MODEL: mistral-small-2506
+      MISTRAL_DECISION_MODEL: mistral-large-2512
+    ports:
+      - "8002:8002"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+  # ==================== NODE.JS SERVICES ====================
+  api_gateway:
+    build:
+      context: ./api_gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      JWT_ACCESS_SECRET: 331510d5410f224e7e034457fb09c57708b113437dee70d6c18c4e110fa40bfd
+      JWT_REFRESH_SECRET: de00551cb6a5a79baf6156e74a3d95a51f85535064fc29e5c09b0c99fecb41df
+      JWT_ACCESS_EXPIRATION: 45m
+      JWT_REFRESH_EXPIRATION: 7d
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      PATIENT_SERVICE_URL: http://patient_management_service:3001
+      DOCTOR_SERVICE_URL: http://doctor_management_service:3002
+      APPOINTMENT_SERVICE_URL: http://appointment_service:3003
+      NOTIFICATION_SERVICE_URL: http://notification_service:3004
+      PAYMENT_SERVICE_URL: http://payment_service:3005
+      TELEMEDICINE_SERVICE_URL: http://telemedicine_service:3006
+      GATEWAY_SECRET: lHYwpOD7ESXtuc0OPMs1j2uhGJXoRRg4enZgbcjS2Aj
+      INTERNAL_SECRET: d3f8e5a4f40c5beeed54742459918f6ccfe56163f6591415d7f651a1674c6769
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX: 100
+    ports:
+      - "5000:5000"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+  doctor_management_service:
+    build:
+      context: ./doctor_management_service
+      dockerfile: Dockerfile
+    container_name: doctor-management-service
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      API_GATEWAY_URL: http://api_gateway:5000
+      PATIENT_SERVICE_URL: http://patient_management_service:3001
+      DOCTOR_SERVICE_URL: http://doctor_management_service:3002
+      APPOINTMENT_SERVICE_URL: http://appointment_service:3003
+      NOTIFICATION_SERVICE_URL: http://notification_service:3004
+      PAYMENT_SERVICE_URL: http://payment_service:3005
+      TELEMEDICINE_SERVICE_URL: http://telemedicine_service:3006
+      GATEWAY_SECRET: lHYwpOD7ESXtuc0OPMs1j2uhGJXoRRg4enZgbcjS2Aj
+      SERVICE_NAME: care-connect-doctor-management-service
+      INTERNAL_SECRET: d3f8e5a4f40c5beeed54742459918f6ccfe56163f6591415d7f651a1674c6769
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    ports:
+      - "3002:3002"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+  appointment_service:
+    build:
+      context: ./appointment_service
+      dockerfile: Dockerfile
+    container_name: appointment-service
+    environment:
+      PORT: 3003
+      NODE_ENV: development
+      GATEWAY_SECRET: lHYwpOD7ESXtuc0OPMs1j2uhGJXoRRg4enZgbcjS2Aj
+      SERVICE_NAME: care-connect-appointment-service
+      INTERNAL_SECRET: d3f8e5a4f40c5beeed54742459918f6ccfe56163f6591415d7f651a1674c6769
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      DOCTOR_SERVICE_URL: http://doctor_management_service:3002
+      TELEMEDICINE_SERVICE_URL: http://telemedicine_service:3006
+      PAYMENT_SERVICE_URL: http://payment_service:3005
+    ports:
+      - "3003:3003"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+  notification_service:
+    build:
+      context: ./notification_service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    environment:
+      PORT: 3004
+      NODE_ENV: development
+      GATEWAY_SECRET: lHYwpOD7ESXtuc0OPMs1j2uhGJXoRRg4enZgbcjS2Aj
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-buddhikamadusanka2000@gmail.com}
+      SMTP_PASS: ${SMTP_PASS:-rqcj roiz itex fmpy}
+      EMAIL_FROM_NAME: Care Connect
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+    ports:
+      - "3004:3004"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+  patient_management_service:
+    build:
+      context: ./patient_management_service
+      dockerfile: Dockerfile
+    container_name: patient-management-service
+    environment:
+      PORT: 3001
+      NODE_ENV: development
+      GATEWAY_SECRET: lHYwpOD7ESXtuc0OPMs1j2uhGJXoRRg4enZgbcjS2Aj
+      API_GATEWAY_URL: http://api_gateway:5000
+      DOCTOR_SERVICE_URL: http://doctor_management_service:3002
+      APPOINTMENT_SERVICE_URL: http://appointment_service:3003
+      NOTIFICATION_SERVICE_URL: http://notification_service:3004
+      PAYMENT_SERVICE_URL: http://payment_service:3005
+      TELEMEDICINE_SERVICE_URL: http://telemedicine_service:3006
+      SERVICE_NAME: care-connect-patient-management-service
+      INTERNAL_SECRET: d3f8e5a4f40c5beeed54742459918f6ccfe56163f6591415d7f651a1674c6769
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      PAYHERE_MERCHANT_ID: ${PAYHERE_MERCHANT_ID:-1234817}
+      PAYHERE_MERCHANT_SECRET: ${PAYHERE_MERCHANT_SECRET:-NTYxNjQxNjE5MTYyMzg0MTQ0NjIwMzM4NTI5NzAxMDEwMTEyMjQ1}
+      PAYHERE_BASE_URL: ${PAYHERE_BASE_URL:-https://sandbox.payhere.lk/pay/checkout}
+      NOTIFY_URL: ${NOTIFY_URL:-http://localhost:3005/webhook/payment}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    ports:
+      - "3001:3001"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+  payment_service:
+    build:
+      context: ./payment_service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    environment:
+      PORT: 3005
+      NODE_ENV: development
+      GATEWAY_SECRET: lHYwpOD7ESXtuc0OPMs1j2uhGJXoRRg4enZgbcjS2Aj
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      API_GATEWAY_URL: http://api_gateway:5000
+      INTERNAL_SECRET: d3f8e5a4f40c5beeed54742459918f6ccfe56163f6591415d7f651a1674c6769
+    ports:
+      - "3005:3005"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+  telemedicine_service:
+    build:
+      context: ./telemedicine_service
+      dockerfile: Dockerfile
+    container_name: telemedicine-service
+    environment:
+      PORT: 3006
+      NODE_ENV: development
+      GATEWAY_SECRET: lHYwpOD7ESXtuc0OPMs1j2uhGJXoRRg4enZgbcjS2Aj
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    ports:
+      - "3006:3006"
+    networks:
+      - care-connect
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  care-connect:
+    driver: bridge
