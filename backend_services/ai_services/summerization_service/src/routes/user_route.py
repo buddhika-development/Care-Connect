@@ -22,7 +22,7 @@ router = APIRouter(prefix="/user", tags=["User"])
     summary="Update a patient's health summary",
     description=(
         "Accepts the patient's existing health summary and new health information, "
-        "then returns a single AI-generated merged summary produced by Gemini."
+        "then returns a single AI-generated merged summary produced by Mistral."
     ),
     response_model=UserAnalyzeResponse,
     status_code=status.HTTP_200_OK,

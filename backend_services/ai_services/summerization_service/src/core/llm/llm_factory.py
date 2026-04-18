@@ -1,5 +1,5 @@
 import logging
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.language_models import BaseLanguageModel
 
 logger = logging.getLogger(__name__)
 
@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 class LLM:
     """Thin wrapper around a LangChain chat model instance."""
 
-    def __init__(self, llm_service: ChatGoogleGenerativeAI):
+    def __init__(self, llm_service: BaseLanguageModel):
         self.llm = llm_service
 
     def invoke(self, prompt: str) -> str:

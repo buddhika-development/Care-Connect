@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import config
 from src.core.db.postgres_connection import AsyncSessionLocal
-from src.core.llm.gemini import gemini
+from src.core.llm.mistral import mistral
 from src.prompts.chat_prompt import chat_prompt_template
 from src.prompts.title_prompt import title_prompt_template
 from src.repositories.chat_message_repository import ChatMessageRepository
@@ -18,10 +18,10 @@ from src.schemas.chat_schema import ChatRequest
 
 logger = logging.getLogger(__name__)
 
-_streaming_llm = gemini.getGeminiStreamingChatModel(
-    model_name=config.gemini_chat_model
+_streaming_llm = mistral.getMistralChatModel(
+    model_name=config.mistral_chat_model
 )
-_title_llm = gemini.getDecisionInstance()
+_title_llm = mistral.getDecisionInstance()
 
 
 class ChatService:

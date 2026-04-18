@@ -32,6 +32,12 @@ class DocumentSummaryRecord(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DocumentSummaryByIdRequest(BaseModel):
+    """Request body for POST /api/document/summary."""
+
+    document_id: str = Field(..., description="Unique identifier of the document")
+
+
 class UserAnalyzeRequest(BaseModel):
     """Request body for POST /api/user/analyze."""
 

@@ -17,6 +17,11 @@ class Config:
     doctor_service_url = os.getenv("DOCTOR_SERVICE_URL", "http://localhost:3002")
     google_embedding_model = os.getenv("GOOGLE_EMBEDDING_MODEL", "gemini-embedding-001")
 
+    mistral_api_key = os.getenv("MISTRAL_API_KEY")
+    mistral_chat_model = os.getenv("MISTRAL_CHAT_MODEL")
+    mistral_decision_model = os.getenv("MISTRAL_DECISION_MODEL")
+    mistral_embedding_model = os.getenv("MISTRAL_EMBEDING_MODEL")
+
 
 class DevelopmentConfig(Config):
     reload = True

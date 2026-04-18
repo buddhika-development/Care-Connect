@@ -9,6 +9,7 @@ from src.repositories.document_summary_repository import DocumentSummaryReposito
 from src.schemas.document_schema import (
     DocumentAnalyzeRequest,
     DocumentAnalyzeResponse,
+    DocumentSummaryByIdRequest,
     DocumentSummaryRecord,
 )
 from src.services.summarization_service import SummarizationService
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/document", tags=["Document"])
     summary="Analyze and summarize a document",
     description=(
         "Accepts a document URL, fetches and parses it using Docling, "
-        "generates an AI summary with Gemini, stores it in the database, "
+        "generates an AI summary with Mistral, stores it in the database, "
         "then merges it with the patient's existing summary and updates the Patient Service."
     ),
     response_model=DocumentAnalyzeResponse,
@@ -67,6 +68,28 @@ async def get_document_summary(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No summary found for document_id '{document_id}'",
+        )
+    return record
+
+
+@router.post(
+    "/summary",
+    summary="Get summary for a specific document (body payload)",
+    description="Returns the most recent AI-generated summary for the given document_id from request body.",
+    response_model=DocumentSummaryRecord,
+    status_code=status.HTTP_200_OK,
+)
+async def get_document_summary_by_body(
+    request: DocumentSummaryByIdRequest,
+    db: AsyncSession = Depends(get_db),
+) -> DocumentSummaryRecord:
+    logger.info("Fetching summary for document_id=%s via POST body", request.document_id)
+    repo = DocumentSummaryRepository(db)
+    record = await repo.get_by_document_id(request.document_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No summary found for document_id '{request.document_id}'",
         )
     return record
 

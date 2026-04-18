@@ -1,6 +1,6 @@
 import logging
 
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_mistralai import MistralAIEmbeddings
 
 from src.config import config
 from src.core.http.doctor_client import doctor_client
@@ -8,9 +8,9 @@ from src.schemas.document_schema import DoctorSemanticRequest, DoctorSemanticRes
 
 logger = logging.getLogger(__name__)
 
-_embeddings = GoogleGenerativeAIEmbeddings(
-    google_api_key=config.gemini_api_key,
-    model=config.google_embedding_model,
+_embeddings = MistralAIEmbeddings(
+    api_key=config.mistral_api_key,
+    model=config.mistral_embedding_model,
 )
 
 
@@ -24,7 +24,7 @@ class DoctorEmbeddingService:
         """
         Pipeline for PATCH /api/v1/doctor/semantic:
 
-          1. Embed `doctor_bio` using Google Generative AI Embeddings.
+          1. Embed `doctor_bio` using Mistral AI Embeddings.
           2. PATCH the Doctor Service with the resulting vector.
           3. Return the Doctor Service response wrapped in DoctorSemanticResponse.
         """

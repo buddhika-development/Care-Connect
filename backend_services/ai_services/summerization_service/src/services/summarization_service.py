@@ -4,7 +4,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from docling.document_converter import DocumentConverter
 
-from src.core.llm.gemini import gemini
+from src.core.llm.mistral import mistral
 from src.core.llm.llm_factory import LLM
 from src.core.http.patient_client import patient_client
 from src.prompts.summarization_prompt import summarization_prompt_template
@@ -20,7 +20,7 @@ from src.schemas.document_schema import (
 
 logger = logging.getLogger(__name__)
 
-_summarization_llm = LLM(gemini.getSummarizationModel())
+_summarization_llm = LLM(mistral.getSummarizationModel())
 
 
 class SummarizationService:
@@ -87,10 +87,10 @@ class SummarizationService:
         Full pipeline for PATCH /api/document/analyze:
 
           1. Convert the document at `document_url` to Markdown via Docling.
-          2. Generate a document summary with Gemini.
+          2. Generate a document summary with Mistral.
           3. Persist (user_id, document_id, document_summary) in the DB.
           4. Fetch the patient's current summary from the Patient Service.
-          5. Merge current patient summary + new document summary via Gemini.
+          5. Merge current patient summary + new document summary via Mistral.
           6. PATCH the Patient Service with the updated patient summary.
           7. Return document_id + document summary.
         """
@@ -190,11 +190,11 @@ class SummarizationService:
         db: AsyncSession,
     ) -> UserAnalyzeResponse:
         """
-        Merge an existing patient health summary with new health content using Gemini.
+        Merge an existing patient health summary with new health content using Mistral.
 
         Pipeline:
           1. Build a prompt combining the current summary and the new content.
-          2. Invoke Gemini to produce a merged, updated summary.
+          2. Invoke Mistral to produce a merged, updated summary.
           3. Return the structured response.
         """
         user_summary_repo = UserSummaryRepository(db)
