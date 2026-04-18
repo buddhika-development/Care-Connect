@@ -1,6 +1,7 @@
 import AppointmentRepository from "../repositories/appointment.repository.js";
 import { getAllDoctorsWithAvailability } from "../utils/doctorServiceHelper.js";
 import { getPatientProfilesByUserIds } from "../utils/patientServiceHelper.js";
+import { sendAppointmentEmailNotification } from "../utils/appointmentNotificationHelper.js";
 import {
   AppError,
   ForbiddenError,
@@ -110,6 +111,15 @@ const AppointmentService = {
       appointment_status: "pending",
       payment_status: "pending",
     });
+
+    try {
+      await sendAppointmentEmailNotification(appointment, "placed");
+    } catch (error) {
+      console.error(
+        "Failed to send appointment placed email notification:",
+        error.message,
+      );
+    }
 
     return appointment;
   },

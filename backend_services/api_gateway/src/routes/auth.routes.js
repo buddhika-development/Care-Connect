@@ -5,6 +5,7 @@ import { registerController } from "../controllers/register.controllers.js";
 import { RefreshTokenController } from "../controllers/refresh.controllers.js";
 import { logoutController } from "../controllers/logout.controllers.js";
 import { ActivateUserController } from "../controllers/activateUser.controller.js";
+import { changePasswordController } from "../controllers/changePassword.controller.js";
 import {
   getAdminUsersController,
   updateDoctorVerificationStatusController,
@@ -60,5 +61,12 @@ authRoutes.patch(
 );
 
 authRoutes.get("/refresh-token", RefreshTokenController);
+
+authRoutes.patch(
+  "/change-password",
+  authenticate,
+  authorize("patient", "doctor"),
+  changePasswordController,
+);
 
 export default authRoutes;

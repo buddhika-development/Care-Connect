@@ -11,6 +11,7 @@ import {
   getSlotDetailsById,
 } from "../utils/doctorServiceHelper.js";
 import { requestRefund } from "../utils/paymentServiceHelper.js";
+import { sendAppointmentEmailNotification } from "../utils/appointmentNotificationHelper.js";
 
 const TELEMEDICINE_SERVICE_URL = process.env.TELEMEDICINE_SERVICE_URL;
 
@@ -76,11 +77,24 @@ const AppointmentStatusService = {
     }
 
     // Step 4 — Cancel appointment
-    return await AppointmentRepository.cancelAppointment(appointmentId);
+    const cancelledAppointment =
+      await AppointmentRepository.cancelAppointment(appointmentId);
+
+    try {
+      await sendAppointmentEmailNotification(cancelledAppointment, "cancelled");
+    } catch (error) {
+      console.error(
+        "Failed to send appointment cancelled email notification:",
+        error.message,
+      );
+    }
+
+    return cancelledAppointment;
   },
 
   async rescheduleAppointment(appointmentId, userId, newSlotId) {
     const appointment = await AppointmentRepository.findById(appointmentId);
+    const previousScheduledAt = appointment.scheduled_at;
 
     // Ownership check — only patient can reschedule
     if (appointment.patient_id !== userId) {
@@ -179,12 +193,29 @@ const AppointmentStatusService = {
     }
 
     // Step 6 — Update appointment with new slot only (mode remains unchanged)
-    return await AppointmentRepository.updateSlot(
+    const rescheduledAppointment = await AppointmentRepository.updateSlot(
       appointmentId,
       newSlotId,
       newScheduledAtDate.toISOString(),
       appointment.channeling_mode,
     );
+
+    try {
+      await sendAppointmentEmailNotification(
+        rescheduledAppointment,
+        "rescheduled",
+        {
+          previousScheduledAt,
+        },
+      );
+    } catch (error) {
+      console.error(
+        "Failed to send appointment rescheduled email notification:",
+        error.message,
+      );
+    }
+
+    return rescheduledAppointment;
   },
 
   async startAppointment(appointmentId, userId) {
