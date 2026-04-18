@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Bot, User, Send, Stethoscope, Calendar, ChevronRight,
   Mic, MicOff, Copy, Check, Play, Pause, Loader2, Menu,
@@ -40,6 +40,16 @@ const WELCOME_MESSAGE: Message = {
   content:
     "I'm CareBot, your AI health assistant 🌿\n\nI can help you find the right doctor, suggest specializations based on your symptoms, and guide you through booking. How can I help you today?",
 };
+
+/** Session id from URL — use pathname so it stays in sync after `router.replace` (useParams can lag one frame). */
+function sessionIdFromAssistantPath(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const prefix = '/patient/ai-assistant/';
+  if (!pathname.startsWith(prefix)) return null;
+  const rest = pathname.slice(prefix.length).replace(/\/$/, '');
+  if (!rest || rest.includes('/')) return null;
+  return rest;
+}
 
 function extractBookingCards(content: string): Doctor[] | undefined {
   const lower = content.toLowerCase();
@@ -124,12 +134,9 @@ function MessageActions({ content }: { content: string }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function AIAssistantPage() {
   const { user } = useAuth();
-  const params = useParams();
   const router = useRouter();
-
-  const sessionIdFromUrl: string | null = Array.isArray(params?.id)
-    ? (params.id[0] ?? null)
-    : null;
+  const pathname = usePathname();
+  const sessionIdFromUrl = sessionIdFromAssistantPath(pathname);
 
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
@@ -149,11 +156,13 @@ export default function AIAssistantPage() {
   useEffect(() => {
     if (sessionIdFromUrl === loadedSessionRef.current) return;
 
-    setMessages([WELCOME_MESSAGE]);
     setSession(sessionIdFromUrl);
     loadedSessionRef.current = sessionIdFromUrl;
 
-    if (!sessionIdFromUrl) return;
+    if (!sessionIdFromUrl) {
+      setMessages([WELCOME_MESSAGE]);
+      return;
+    }
 
     setIsLoadingHistory(true);
     fetch(`${API_BASE}/chat/sessions/${sessionIdFromUrl}/messages`)
@@ -162,13 +171,18 @@ export default function AIAssistantPage() {
         return res.json() as Promise<Array<{ id: string; role: string; content: string }>>;
       })
       .then((data) => {
-        setMessages(
-          data.map((m) => ({
+        setMessages((prev) => {
+          const mapped = data.map((m) => ({
             id: m.id,
             role: m.role as 'user' | 'assistant',
             content: m.content,
-          }))
-        );
+          }));
+
+          // During a fresh session, backend persistence can lag briefly.
+          // Keep current in-memory chat instead of replacing it with an empty list.
+          if (mapped.length === 0) return prev.length > 0 ? prev : [WELCOME_MESSAGE];
+          return mapped;
+        });
       })
       .catch((err) => console.error('Failed to load chat history:', err))
       .finally(() => setIsLoadingHistory(false));
