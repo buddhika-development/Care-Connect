@@ -7,6 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Camera, Save } from "lucide-react";
 import { useDoctorProfile, useUpdateDoctorProfile } from "@/hooks/useDoctor";
+import PasswordChangeCard from "@/components/common/PasswordChangeCard";
 import { useAuth } from "@/context/AuthContext";
 import { useProfileUIStore } from "@/store/profileStore";
 
@@ -133,7 +134,7 @@ export default function DoctorProfilePage() {
     "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm disabled:bg-secondary disabled:text-text-secondary disabled:cursor-not-allowed";
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-7xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-text">Profile Settings</h1>
         <p className="text-text-secondary text-sm mt-1">
@@ -141,218 +142,226 @@ export default function DoctorProfilePage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Photo */}
-        <div className="bg-card rounded-2xl border border-border shadow-card p-6">
-          <h2 className="font-semibold text-text mb-4">Profile Photo</h2>
-          <div className="flex items-center gap-5">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-accent/10 border-2 border-accent flex items-center justify-center overflow-hidden">
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-accent">
-                    {user?.firstName?.[0] ?? ""}
-                    {user?.lastName?.[0] ?? ""}
-                  </span>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] items-start">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 min-w-0">
+          {/* Photo */}
+          <div className="bg-card rounded-2xl border border-border shadow-card p-6">
+            <h2 className="font-semibold text-text mb-4">Profile Photo</h2>
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full bg-accent/10 border-2 border-accent flex items-center justify-center overflow-hidden">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl font-bold text-accent">
+                      {user?.firstName?.[0] ?? ""}
+                      {user?.lastName?.[0] ?? ""}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 w-7 h-7 bg-accent rounded-full flex items-center justify-center border-2 border-card"
+                >
+                  <Camera className="w-3.5 h-3.5 text-white" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setPreviewUrl(URL.createObjectURL(f));
+                  }}
+                />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text">
+                  Dr. {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {profile?.specialization ||
+                    "Complete your profile to start receiving appointments."}
+                </p>
+                <span
+                  className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full mt-1 font-medium ${user?.isVerified ? "bg-success-light text-success" : "bg-warning-light text-warning"}`}
+                >
+                  {user?.isVerified ? "✓ Verified" : "Verification Pending"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Account Info */}
+          <div className="bg-card rounded-2xl border border-border shadow-card p-6 space-y-4">
+            <h2 className="font-semibold text-text">Account Information</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  First Name
+                </label>
+                <input {...register("firstName")} className={inputClass} />
+                {errors.firstName && (
+                  <p className="text-error text-xs mt-1">
+                    {errors.firstName.message}
+                  </p>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-7 h-7 bg-accent rounded-full flex items-center justify-center border-2 border-card"
-              >
-                <Camera className="w-3.5 h-3.5 text-white" />
-              </button>
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Last Name
+                </label>
+                <input {...register("lastName")} className={inputClass} />
+                {errors.lastName && (
+                  <p className="text-error text-xs mt-1">
+                    {errors.lastName.message}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Email
+              </label>
               <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) setPreviewUrl(URL.createObjectURL(f));
-                }}
+                value={user?.email ?? ""}
+                disabled
+                className={inputClass}
               />
             </div>
             <div>
-              <p className="text-sm font-medium text-text">
-                Dr. {user?.firstName} {user?.lastName}
-              </p>
-              <p className="text-xs text-text-muted mt-0.5">
-                {profile?.specialization ||
-                  "Complete your profile to start receiving appointments."}
-              </p>
-              <span
-                className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full mt-1 font-medium ${user?.isVerified ? "bg-success-light text-success" : "bg-warning-light text-warning"}`}
-              >
-                {user?.isVerified ? "✓ Verified" : "Verification Pending"}
-              </span>
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Verification
+              </label>
+              <input
+                value={user?.isVerified ? "Verified" : "Pending verification"}
+                disabled
+                className={inputClass}
+              />
             </div>
+            <p className="text-xs text-text-muted">
+              Email and account name are managed by authentication and cannot be
+              edited here.
+            </p>
           </div>
-        </div>
 
-        {/* Account Info */}
-        <div className="bg-card rounded-2xl border border-border shadow-card p-6 space-y-4">
-          <h2 className="font-semibold text-text">Account Information</h2>
-          <div className="grid grid-cols-2 gap-4">
+          {/* Profile Fields */}
+          <div className="bg-card rounded-2xl border border-border shadow-card p-6 space-y-4">
+            <h2 className="font-semibold text-text">Professional Profile</h2>
             <div>
               <label className="block text-sm font-medium text-text mb-1.5">
-                First Name
+                Display Name
               </label>
-              <input {...register("firstName")} className={inputClass} />
-              {errors.firstName && (
+              <input
+                {...register("fullName")}
+                placeholder="Dr. John Doe"
+                className={inputClass}
+              />
+              {errors.fullName && (
                 <p className="text-error text-xs mt-1">
-                  {errors.firstName.message}
+                  {errors.fullName.message}
                 </p>
               )}
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Specialization
+                </label>
+                <input
+                  {...register("specialization")}
+                  placeholder="General Physician"
+                  className={inputClass}
+                />
+                {errors.specialization && (
+                  <p className="text-error text-xs mt-1">
+                    {errors.specialization.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Medical License Number
+                </label>
+                <input
+                  {...register("licenseNumber")}
+                  placeholder="SLMC-XXXX"
+                  className={inputClass}
+                />
+                {errors.licenseNumber && (
+                  <p className="text-error text-xs mt-1">
+                    {errors.licenseNumber.message}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Room Number
+                </label>
+                <input
+                  {...register("roomNumber")}
+                  placeholder="A-102"
+                  className={inputClass}
+                />
+                {errors.roomNumber && (
+                  <p className="text-error text-xs mt-1">
+                    {errors.roomNumber.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text mb-1.5">
+                  Years of Experience
+                </label>
+                <input
+                  {...register("experienceYears", { valueAsNumber: true })}
+                  type="number"
+                  min={0}
+                  className={inputClass}
+                />
+                {errors.experienceYears && (
+                  <p className="text-error text-xs mt-1">
+                    {errors.experienceYears.message}
+                  </p>
+                )}
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-text mb-1.5">
-                Last Name
+                Short Bio
               </label>
-              <input {...register("lastName")} className={inputClass} />
-              {errors.lastName && (
-                <p className="text-error text-xs mt-1">
-                  {errors.lastName.message}
-                </p>
+              <textarea
+                {...register("bio")}
+                rows={3}
+                placeholder="Brief professional bio..."
+                className={`${inputClass} resize-none`}
+              />
+              {errors.bio && (
+                <p className="text-error text-xs mt-1">{errors.bio.message}</p>
               )}
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-text mb-1.5">
-              Email
-            </label>
-            <input value={user?.email ?? ""} disabled className={inputClass} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text mb-1.5">
-              Verification
-            </label>
-            <input
-              value={user?.isVerified ? "Verified" : "Pending verification"}
-              disabled
-              className={inputClass}
-            />
-          </div>
-          <p className="text-xs text-text-muted">
-            Email and account name are managed by authentication and cannot be
-            edited here.
-          </p>
-        </div>
 
-        {/* Profile Fields */}
-        <div className="bg-card rounded-2xl border border-border shadow-card p-6 space-y-4">
-          <h2 className="font-semibold text-text">Professional Profile</h2>
-          <div>
-            <label className="block text-sm font-medium text-text mb-1.5">
-              Display Name
-            </label>
-            <input
-              {...register("fullName")}
-              placeholder="Dr. John Doe"
-              className={inputClass}
-            />
-            {errors.fullName && (
-              <p className="text-error text-xs mt-1">
-                {errors.fullName.message}
-              </p>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-text mb-1.5">
-                Specialization
-              </label>
-              <input
-                {...register("specialization")}
-                placeholder="General Physician"
-                className={inputClass}
-              />
-              {errors.specialization && (
-                <p className="text-error text-xs mt-1">
-                  {errors.specialization.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-text mb-1.5">
-                Medical License Number
-              </label>
-              <input
-                {...register("licenseNumber")}
-                placeholder="SLMC-XXXX"
-                className={inputClass}
-              />
-              {errors.licenseNumber && (
-                <p className="text-error text-xs mt-1">
-                  {errors.licenseNumber.message}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-text mb-1.5">
-                Room Number
-              </label>
-              <input
-                {...register("roomNumber")}
-                placeholder="A-102"
-                className={inputClass}
-              />
-              {errors.roomNumber && (
-                <p className="text-error text-xs mt-1">
-                  {errors.roomNumber.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-text mb-1.5">
-                Years of Experience
-              </label>
-              <input
-                {...register("experienceYears", { valueAsNumber: true })}
-                type="number"
-                min={0}
-                className={inputClass}
-              />
-              {errors.experienceYears && (
-                <p className="text-error text-xs mt-1">
-                  {errors.experienceYears.message}
-                </p>
-              )}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text mb-1.5">
-              Short Bio
-            </label>
-            <textarea
-              {...register("bio")}
-              rows={3}
-              placeholder="Brief professional bio..."
-              className={`${inputClass} resize-none`}
-            />
-            {errors.bio && (
-              <p className="text-error text-xs mt-1">{errors.bio.message}</p>
-            )}
-          </div>
-        </div>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full py-3 px-6 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-all shadow-sm disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isPending ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full py-3 px-6 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-all shadow-sm disabled:opacity-60 flex items-center justify-center gap-2"
-        >
-          <Save className="w-4 h-4" />
-          {isPending ? "Saving..." : "Save Changes"}
-        </button>
-      </form>
+        <PasswordChangeCard />
+      </div>
     </div>
   );
 }

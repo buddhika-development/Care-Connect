@@ -59,6 +59,19 @@ export async function updateUserProfile(userId, profileData) {
   return { data, error };
 }
 
+export async function updateUserPasswordHash(userId, passwordHash) {
+  const { data, error } = await supabase
+    .from("users")
+    .update({ password_hash: passwordHash })
+    .eq("id", userId)
+    .select(
+      "id,email,role,first_name,last_name,is_active,is_verified,complete_profile,updated_at",
+    )
+    .maybeSingle();
+
+  return { data, error };
+}
+
 export async function getUsersForAdmin({ search, role, isActive }) {
   let query = supabase
     .from("users")

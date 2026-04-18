@@ -24,3 +24,12 @@ export const getPatientProfilesByUserIds = async (userIds = []) => {
 
   return response.data || [];
 };
+
+export const getPatientProfileByUserId = async (userId) => {
+  if (!userId) {
+    return null;
+  }
+
+  const profiles = await getPatientProfilesByUserIds([userId]);
+  return profiles?.[0] || null;
+};

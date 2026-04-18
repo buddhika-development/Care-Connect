@@ -1,5 +1,5 @@
-import { apiClient } from '@/lib/axios';
-import { UserRole } from '@/types/common';
+import { apiClient } from "@/lib/axios";
+import { UserRole } from "@/types/common";
 
 // ─── Shapes ──────────────────────────────────────────────────────────────────
 
@@ -19,13 +19,19 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 // ─── API Calls ───────────────────────────────────────────────────────────────
 
 export async function loginApi(
   email: string,
-  password: string
+  password: string,
 ): Promise<LoginResponse> {
-  const { data } = await apiClient.post('/api/auth/login', { email, password });
+  const { data } = await apiClient.post("/api/auth/login", { email, password });
   const d = data.data;
   return {
     accessToken: d.accessToken,
@@ -49,20 +55,20 @@ export async function registerPatientApi(payload: {
   password: string;
 }): Promise<{ email: string; firstName: string; lastName: string }> {
   // Doctors are added by admin only — we NEVER pass 'doctor' role here
-  const { data } = await apiClient.post('/api/auth/register', {
+  const { data } = await apiClient.post("/api/auth/register", {
     ...payload,
-    role: 'patient',
+    role: "patient",
   });
   const d = data.data;
   return { email: d.email, firstName: d.firstName, lastName: d.lastName };
 }
 
 export async function logoutApi(): Promise<void> {
-  await apiClient.post('/api/auth/logout');
+  await apiClient.post("/api/auth/logout");
 }
 
 export async function refreshSessionApi(): Promise<LoginResponse> {
-  const { data } = await apiClient.get('/api/auth/refresh-token');
+  const { data } = await apiClient.get("/api/auth/refresh-token");
   const d = data.data;
   return {
     accessToken: d.accessToken,
@@ -77,4 +83,11 @@ export async function refreshSessionApi(): Promise<LoginResponse> {
       isActive: d.is_active ?? true,
     },
   };
+}
+
+export async function changePasswordApi(
+  payload: ChangePasswordRequest,
+): Promise<{ userId: string; updatedAt?: string }> {
+  const { data } = await apiClient.patch("/api/auth/change-password", payload);
+  return data.data;
 }
