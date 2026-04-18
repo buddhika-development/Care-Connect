@@ -2,6 +2,7 @@ import express, { json } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import patientRoutes from "./routes/patient.routes.js";
+import internalRoutes from "./routes/internal.routes.js";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
 
 dotenv.config();
@@ -14,6 +15,7 @@ console.log(
   "Patient Management Service - App initialized with middleware and routes.",
 );
 app.use("/api/patients", patientRoutes);
+app.use("/api/patients/internal", internalRoutes);
 
 app.use(errorHandler);
 

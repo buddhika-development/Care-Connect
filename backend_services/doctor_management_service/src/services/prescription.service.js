@@ -14,9 +14,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../utils/errors.utils.js";
-import {
-  getAppointmentForDoctor,
-} from "../utils/appointmentServiceHelper.js";
+import { getAppointmentForDoctor } from "../utils/appointmentServiceHelper.js";
 
 const getDoctorProfileId = async (user) => {
   if (!user || !user.userId) {
@@ -40,9 +38,7 @@ const validatePrescriptionInput = (body) => {
   const { diagnosis, medications } = body;
 
   if (!diagnosis || !medications) {
-    throw new ValidationError(
-      "diagnosis and medications are required",
-    );
+    throw new ValidationError("diagnosis and medications are required");
   }
 
   if (!Array.isArray(medications) || medications.length === 0) {
@@ -50,11 +46,7 @@ const validatePrescriptionInput = (body) => {
   }
 };
 
-export const createPrescriptionService = async (
-  user,
-  appointmentId,
-  body,
-) => {
+export const createPrescriptionService = async (user, appointmentId, body) => {
   const doctorProfileId = await getDoctorProfileId(user);
 
   validatePrescriptionInput(body);
@@ -65,10 +57,7 @@ export const createPrescriptionService = async (
     );
   }
 
-  const appointment = await getAppointmentForDoctor(
-    appointmentId,
-    user.userId,
-  );
+  const appointment = await getAppointmentForDoctor(appointmentId, user.userId);
 
   const activePrescriptions = await getActivePrescriptionsByAppointmentId(
     appointmentId,
@@ -96,9 +85,8 @@ export const createPrescriptionService = async (
 export const getMyPrescriptionsService = async (user) => {
   const doctorProfileId = await getDoctorProfileId(user);
 
-  const prescriptions = await getPrescriptionsByDoctorProfileId(
-    doctorProfileId,
-  );
+  const prescriptions =
+    await getPrescriptionsByDoctorProfileId(doctorProfileId);
 
   return prescriptions || [];
 };
@@ -126,11 +114,11 @@ export const getMyPatientPrescriptionsService = async (user) => {
 
   return rows.map((row) => {
     const doctorProfile = doctorProfileMap.get(row.doctor_profile_id);
+    const doctorName = doctorProfile?.full_name?.trim();
+
     return {
       ...row,
-      doctor_name: doctorProfile
-        ? `Dr. ${doctorProfile.first_name} ${doctorProfile.last_name}`
-        : "Doctor",
+      doctor_name: doctorName ? `Dr. ${doctorName}` : "Doctor",
       doctor_specialization: doctorProfile?.specialization || "",
     };
   });
@@ -166,9 +154,7 @@ export const cancelPrescriptionService = async (user, prescriptionId) => {
   }
 
   if (prescription.doctor_profile_id !== doctorProfileId) {
-    throw new ForbiddenError(
-      "You are not allowed to cancel this prescription",
-    );
+    throw new ForbiddenError("You are not allowed to cancel this prescription");
   }
 
   if (prescription.status === "cancelled") {

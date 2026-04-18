@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/axios';
+import { apiClient } from "@/lib/axios";
 import {
   DoctorCard,
   DoctorProfile,
@@ -7,9 +7,9 @@ import {
   DoctorProfileFull,
   stripSeconds,
   transformDoctorFull,
-} from '@/types/doctor';
-import { SessionPatientInfo } from '@/types/appointment';
-import { Prescription } from '@/types/patient';
+} from "@/types/doctor";
+import { SessionPatientInfo } from "@/types/appointment";
+import { Prescription } from "@/types/patient";
 
 type DoctorProfileRaw = {
   id: string;
@@ -29,9 +29,9 @@ type DoctorAvailabilityRaw = {
   start_time: string;
   end_time: string;
   slot_duration_minutes: number;
-  channeling_mode: 'physical' | 'online';
+  channeling_mode: "physical" | "online";
   consultation_fee: number;
-  status: 'scheduled' | 'ongoing' | 'completed';
+  status: "scheduled" | "ongoing" | "completed";
   doctor_availability_slots: Array<{
     id: string;
     slot_date: string;
@@ -42,8 +42,8 @@ type DoctorAvailabilityRaw = {
 };
 
 type CreateAvailabilityResponse = {
-  availability: Omit<DoctorAvailabilityRaw, 'doctor_availability_slots'>;
-  slots: DoctorAvailabilityRaw['doctor_availability_slots'];
+  availability: Omit<DoctorAvailabilityRaw, "doctor_availability_slots">;
+  slots: DoctorAvailabilityRaw["doctor_availability_slots"];
 };
 
 type DoctorPatientMedicalRecordRaw = {
@@ -57,7 +57,9 @@ type DoctorPatientMedicalRecordRaw = {
   allergies: string[] | null;
   chronic_conditions: string[] | null;
   current_medications: string[] | null;
-  medical_report_urls: Array<string | { path?: string | null; signedUrl?: string | null }> | null;
+  medical_report_urls: Array<
+    string | { path?: string | null; signedUrl?: string | null }
+  > | null;
 };
 
 type DoctorPrescriptionRaw = {
@@ -81,7 +83,13 @@ type DoctorPrescriptionRaw = {
           custom?: string;
         };
     duration?: string;
-    instruction_type?: 'before_meal' | 'after_meal' | 'with_meal' | 'before_sleep' | 'custom' | string;
+    instruction_type?:
+      | "before_meal"
+      | "after_meal"
+      | "with_meal"
+      | "before_sleep"
+      | "custom"
+      | string;
     instruction_text?: string;
     instruction?: string;
     instructions?: string;
@@ -100,11 +108,11 @@ export interface PrescriptionFrequencySelection {
 }
 
 export type PrescriptionInstructionType =
-  | 'before_meal'
-  | 'after_meal'
-  | 'with_meal'
-  | 'before_sleep'
-  | 'custom';
+  | "before_meal"
+  | "after_meal"
+  | "with_meal"
+  | "before_sleep"
+  | "custom";
 
 export interface CreatePrescriptionMedicineRequest {
   name: string;
@@ -124,12 +132,12 @@ export interface CreateAppointmentPrescriptionRequest {
 
 export interface CreateDoctorAvailabilityRequest {
   date: string;
-  consultationType: 'physical' | 'online';
+  consultationType: "physical" | "online";
   startTime: string;
   endTime: string;
   slotDuration: number;
   consultationFee: number;
-  status?: 'scheduled' | 'ongoing' | 'completed';
+  status?: "scheduled" | "ongoing" | "completed";
 }
 
 export interface UpdateDoctorAvailabilityRequest extends CreateDoctorAvailabilityRequest {
@@ -138,6 +146,8 @@ export interface UpdateDoctorAvailabilityRequest extends CreateDoctorAvailabilit
 
 export interface DoctorProfilePayload {
   full_name: string;
+  first_name?: string;
+  last_name?: string;
   specialization: string;
   license_number?: string;
   experience_years: number;
@@ -146,7 +156,7 @@ export interface DoctorProfilePayload {
 }
 
 export interface SaveDoctorProfileRequest {
-  mode: 'create' | 'update';
+  mode: "create" | "update";
   payload: DoctorProfilePayload;
 }
 
@@ -156,10 +166,10 @@ function mapDoctorProfile(raw: DoctorProfileRaw): DoctorProfile {
     userId: raw.user_id,
     fullName: raw.full_name,
     specialization: raw.specialization,
-    licenseNumber: raw.license_number ?? '',
+    licenseNumber: raw.license_number ?? "",
     experienceYears: raw.experience_years ?? 0,
-    roomNumber: raw.room_number ?? '',
-    bio: raw.bio ?? '',
+    roomNumber: raw.room_number ?? "",
+    bio: raw.bio ?? "",
   };
 }
 
@@ -186,39 +196,46 @@ function mapDoctorAvailability(raw: DoctorAvailabilityRaw): DoctorAvailability {
 function mapPatientMedicalRecordToSessionPatient(
   raw: DoctorPatientMedicalRecordRaw,
 ): SessionPatientInfo {
-  const fullName = `${raw.first_name ?? ''} ${raw.last_name ?? ''}`.trim();
-  const [firstName, ...rest] = fullName.length > 0 ? fullName.split(' ') : ['Patient'];
-  const lastName = rest.join(' ');
+  const fullName = `${raw.first_name ?? ""} ${raw.last_name ?? ""}`.trim();
+  const [firstName, ...rest] =
+    fullName.length > 0 ? fullName.split(" ") : ["Patient"];
+  const lastName = rest.join(" ");
 
   const medicalDocuments = (raw.medical_report_urls ?? [])
     .map((entry, index) => {
-      if (typeof entry === 'string') {
+      if (typeof entry === "string") {
         return {
           id: `med-doc-${index + 1}`,
-          fileName: decodeURIComponent((entry.split('?')[0].split('/').pop() || `report-${index + 1}`)),
+          fileName: decodeURIComponent(
+            entry.split("?")[0].split("/").pop() || `report-${index + 1}`,
+          ),
           fileUrl: entry,
         };
       }
 
-      const url = entry?.signedUrl ?? '';
+      const url = entry?.signedUrl ?? "";
       if (!url) return null;
 
       const sourceForName = entry?.path ?? url;
       return {
         id: `med-doc-${index + 1}`,
-        fileName: decodeURIComponent((sourceForName.split('?')[0].split('/').pop() || `report-${index + 1}`)),
+        fileName: decodeURIComponent(
+          sourceForName.split("?")[0].split("/").pop() || `report-${index + 1}`,
+        ),
         fileUrl: url,
       };
     })
-    .filter((doc): doc is { id: string; fileName: string; fileUrl: string } => Boolean(doc));
+    .filter((doc): doc is { id: string; fileName: string; fileUrl: string } =>
+      Boolean(doc),
+    );
 
   return {
     id: raw.patient_user_id,
     firstName,
     lastName,
     age: raw.age ?? 0,
-    gender: raw.gender ?? 'Unknown',
-    bloodType: raw.blood_type ?? 'Unknown',
+    gender: raw.gender ?? "Unknown",
+    bloodType: raw.blood_type ?? "Unknown",
     profileImage: null,
     allergies: raw.allergies ?? [],
     chronicConditions: raw.chronic_conditions ?? [],
@@ -234,58 +251,77 @@ function mapPrescriptionRawToPrescription(
   doctorSpecialization: string,
 ): Prescription {
   const instructionLabelByType: Record<string, string> = {
-    before_meal: 'Before meal',
-    after_meal: 'After meal',
-    with_meal: 'With meal',
-    before_sleep: 'Before sleep',
+    before_meal: "Before meal",
+    after_meal: "After meal",
+    with_meal: "With meal",
+    before_sleep: "Before sleep",
   };
 
-  const getFrequencyLabel = (frequency: DoctorPrescriptionRaw['medications'][number]['frequency']): string => {
-    if (!frequency) return '';
+  const getFrequencyLabel = (
+    frequency: DoctorPrescriptionRaw["medications"][number]["frequency"],
+  ): string => {
+    if (!frequency) return "";
 
-    if (typeof frequency === 'string') return frequency;
+    if (typeof frequency === "string") return frequency;
 
     if (Array.isArray(frequency)) {
-      return frequency.join(', ');
+      return frequency.join(", ");
     }
 
     const parts: string[] = [];
-    if (frequency.morning) parts.push('Morning');
-    if (frequency.day) parts.push('Day');
-    if (frequency.night) parts.push('Night');
-    if (frequency.custom && frequency.custom.trim()) parts.push(frequency.custom.trim());
-    return parts.join(', ');
+    if (frequency.morning) parts.push("Morning");
+    if (frequency.day) parts.push("Day");
+    if (frequency.night) parts.push("Night");
+    if (frequency.custom && frequency.custom.trim())
+      parts.push(frequency.custom.trim());
+    return parts.join(", ");
   };
 
-  const getInstructionLabel = (medicine: DoctorPrescriptionRaw['medications'][number]): string => {
-    if (medicine.instructions && medicine.instructions.trim()) return medicine.instructions.trim();
-    if (medicine.instruction && medicine.instruction.trim()) return medicine.instruction.trim();
+  const getInstructionLabel = (
+    medicine: DoctorPrescriptionRaw["medications"][number],
+  ): string => {
+    if (medicine.instructions && medicine.instructions.trim())
+      return medicine.instructions.trim();
+    if (medicine.instruction && medicine.instruction.trim())
+      return medicine.instruction.trim();
 
-    if (medicine.instruction_type === 'custom') {
-      return medicine.instruction_text?.trim() || '';
+    if (medicine.instruction_type === "custom") {
+      return medicine.instruction_text?.trim() || "";
     }
 
     if (medicine.instruction_text && medicine.instruction_text.trim()) {
       return medicine.instruction_text.trim();
     }
 
-    if (medicine.instruction_type && instructionLabelByType[medicine.instruction_type]) {
+    if (
+      medicine.instruction_type &&
+      instructionLabelByType[medicine.instruction_type]
+    ) {
       return instructionLabelByType[medicine.instruction_type];
     }
 
-    return '';
+    return "";
   };
 
-  const getDosageLabel = (medicine: DoctorPrescriptionRaw['medications'][number]): string => {
-    if (medicine.dosage_mg !== undefined && medicine.dosage_mg !== null && medicine.dosage_mg !== '') {
-      const dosageValue = typeof medicine.dosage_mg === 'string' ? Number(medicine.dosage_mg) : medicine.dosage_mg;
-      const unit = medicine.dosage_unit || 'mg';
+  const getDosageLabel = (
+    medicine: DoctorPrescriptionRaw["medications"][number],
+  ): string => {
+    if (
+      medicine.dosage_mg !== undefined &&
+      medicine.dosage_mg !== null &&
+      medicine.dosage_mg !== ""
+    ) {
+      const dosageValue =
+        typeof medicine.dosage_mg === "string"
+          ? Number(medicine.dosage_mg)
+          : medicine.dosage_mg;
+      const unit = medicine.dosage_unit || "mg";
       if (!Number.isNaN(dosageValue)) {
         return `${dosageValue} ${unit}/day`;
       }
     }
 
-    return medicine.dosage ?? '';
+    return medicine.dosage ?? "";
   };
 
   return {
@@ -298,13 +334,13 @@ function mapPrescriptionRawToPrescription(
     updatedAt: raw.updated_at,
     diagnosis: raw.diagnosis,
     medicines: (raw.medications ?? []).map((medicine) => ({
-      name: medicine.medicine_name ?? medicine.name ?? 'Medicine',
+      name: medicine.medicine_name ?? medicine.name ?? "Medicine",
       dosage: getDosageLabel(medicine),
       frequency: getFrequencyLabel(medicine.frequency),
-      duration: medicine.duration ?? '',
+      duration: medicine.duration ?? "",
       instructions: getInstructionLabel(medicine),
     })),
-    notes: raw.notes ?? '',
+    notes: raw.notes ?? "",
     appointmentId: raw.appointment_id,
     status: raw.status,
   };
@@ -317,11 +353,13 @@ function mapPrescriptionRawToPrescription(
  * Optionally filter by specialization (backend-filtered).
  * Name search is done client-side in the UI.
  */
-export async function getDoctors(specialization?: string): Promise<DoctorCard[]> {
+export async function getDoctors(
+  specialization?: string,
+): Promise<DoctorCard[]> {
   const params: Record<string, string> = {};
   if (specialization) params.specialization = specialization;
 
-  const { data } = await apiClient.get('/api/doctors/profile/all', { params });
+  const { data } = await apiClient.get("/api/doctors/profile/all", { params });
   const raw: DoctorProfileFull[] = data.data ?? [];
   return raw.map(transformDoctorFull);
 }
@@ -329,14 +367,32 @@ export async function getDoctors(specialization?: string): Promise<DoctorCard[]>
 // ─── Doctor self-profile (doctor role only) ───────────────────────────────────
 
 export const MOCK_ALL_DOCTORS_ADMIN = [
-  { id: 'doc-001', firstName: 'Suresh', lastName: 'Fernando', email: 'suresh.fernando@colombogeneral.lk', specialization: 'General Physician', currentHospital: 'Colombo General Hospital', isVerified: true },
-  { id: 'doc-002', firstName: 'Nirmala', lastName: 'Jayawardena', email: 'nirmala.j@lankahospitals.lk', specialization: 'Pulmonologist', currentHospital: 'Lanka Hospitals', isVerified: true },
+  {
+    id: "doc-001",
+    firstName: "Suresh",
+    lastName: "Fernando",
+    email: "suresh.fernando@colombogeneral.lk",
+    specialization: "General Physician",
+    currentHospital: "Colombo General Hospital",
+    isVerified: true,
+  },
+  {
+    id: "doc-002",
+    firstName: "Nirmala",
+    lastName: "Jayawardena",
+    email: "nirmala.j@lankahospitals.lk",
+    specialization: "Pulmonologist",
+    currentHospital: "Lanka Hospitals",
+    isVerified: true,
+  },
 ];
 
-export async function getDoctorProfile(userId: string): Promise<DoctorProfile | null> {
+export async function getDoctorProfile(
+  userId: string,
+): Promise<DoctorProfile | null> {
   void userId;
   try {
-    const { data } = await apiClient.get('/api/doctors/profile');
+    const { data } = await apiClient.get("/api/doctors/profile");
     if (!data?.data) return null;
     return mapDoctorProfile(data.data as DoctorProfileRaw);
   } catch {
@@ -348,16 +404,19 @@ export async function saveDoctorProfile({
   mode,
   payload,
 }: SaveDoctorProfileRequest): Promise<DoctorProfile> {
-  const endpoint = '/api/doctors/profile';
-  const { data } = mode === 'create'
-    ? await apiClient.post(endpoint, payload)
-    : await apiClient.put(endpoint, payload);
+  const endpoint = "/api/doctors/profile";
+  const { data } =
+    mode === "create"
+      ? await apiClient.post(endpoint, payload)
+      : await apiClient.put(endpoint, payload);
   return mapDoctorProfile(data.data as DoctorProfileRaw);
 }
 
-export async function getDoctorAvailability(doctorId: string): Promise<DoctorAvailability[]> {
+export async function getDoctorAvailability(
+  doctorId: string,
+): Promise<DoctorAvailability[]> {
   void doctorId;
-  const { data } = await apiClient.get('/api/doctors/availability');
+  const { data } = await apiClient.get("/api/doctors/availability");
   const rows: DoctorAvailabilityRaw[] = data.data ?? [];
   return rows.map(mapDoctorAvailability);
 }
@@ -372,10 +431,13 @@ export async function createAvailability(
     slot_duration_minutes: data.slotDuration,
     channeling_mode: data.consultationType,
     consultation_fee: data.consultationFee,
-    status: data.status ?? 'scheduled',
+    status: data.status ?? "scheduled",
   };
 
-  const { data: response } = await apiClient.post('/api/doctors/availability', payload);
+  const { data: response } = await apiClient.post(
+    "/api/doctors/availability",
+    payload,
+  );
   const result = response.data as CreateAvailabilityResponse;
 
   return mapDoctorAvailability({
@@ -394,7 +456,7 @@ export async function updateAvailability(
     slot_duration_minutes: data.slotDuration,
     channeling_mode: data.consultationType,
     consultation_fee: data.consultationFee,
-    status: data.status ?? 'scheduled',
+    status: data.status ?? "scheduled",
   };
 
   const { data: response } = await apiClient.put(
@@ -409,7 +471,9 @@ export async function updateAvailability(
   });
 }
 
-export async function cancelAvailability(availabilityId: string): Promise<void> {
+export async function cancelAvailability(
+  availabilityId: string,
+): Promise<void> {
   await apiClient.delete(`/api/doctors/availability/${availabilityId}`);
 }
 
@@ -431,7 +495,9 @@ export async function markAvailabilityAsCompleted(
   return mapDoctorAvailability(data.data as DoctorAvailabilityRaw);
 }
 
-export async function getDoctorDaySchedules(doctorId: string): Promise<DoctorDaySchedule[]> {
+export async function getDoctorDaySchedules(
+  doctorId: string,
+): Promise<DoctorDaySchedule[]> {
   const availabilities = await getDoctorAvailability(doctorId);
   return availabilities.map((availability) => ({
     date: availability.date,
@@ -463,18 +529,24 @@ export async function getAppointmentPrescriptions(
   doctorName: string,
   doctorSpecialization: string,
 ): Promise<Prescription[]> {
-  const { data } = await apiClient.get(`/api/doctors/prescriptions/appointment/${appointmentId}`);
+  const { data } = await apiClient.get(
+    `/api/doctors/prescriptions/appointment/${appointmentId}`,
+  );
   const rows: DoctorPrescriptionRaw[] = data.data ?? [];
-  return rows.map((row) => mapPrescriptionRawToPrescription(row, doctorName, doctorSpecialization));
+  return rows.map((row) =>
+    mapPrescriptionRawToPrescription(row, doctorName, doctorSpecialization),
+  );
 }
 
 export async function getDoctorPrescriptions(
   doctorName: string,
   doctorSpecialization: string,
 ): Promise<Prescription[]> {
-  const { data } = await apiClient.get('/api/doctors/prescriptions');
+  const { data } = await apiClient.get("/api/doctors/prescriptions");
   const rows: DoctorPrescriptionRaw[] = data.data ?? [];
-  return rows.map((row) => mapPrescriptionRawToPrescription(row, doctorName, doctorSpecialization));
+  return rows.map((row) =>
+    mapPrescriptionRawToPrescription(row, doctorName, doctorSpecialization),
+  );
 }
 
 export async function createAppointmentPrescription(
@@ -483,10 +555,10 @@ export async function createAppointmentPrescription(
   doctorSpecialization: string,
 ): Promise<Prescription> {
   const instructionLabelByType: Record<string, string> = {
-    before_meal: 'Before meal',
-    after_meal: 'After meal',
-    with_meal: 'With meal',
-    before_sleep: 'Before sleep',
+    before_meal: "Before meal",
+    after_meal: "After meal",
+    with_meal: "With meal",
+    before_sleep: "Before sleep",
   };
 
   const payload = {
@@ -494,7 +566,7 @@ export async function createAppointmentPrescription(
     medications: request.medications.map((medicine) => ({
       medicine_name: medicine.name,
       dosage_mg: medicine.dosageMg,
-      dosage_unit: 'mg',
+      dosage_unit: "mg",
       dosage: `${medicine.dosageMg} mg/day`,
       frequency: {
         morning: medicine.frequency.morning,
@@ -503,23 +575,25 @@ export async function createAppointmentPrescription(
         custom: medicine.frequency.custom?.trim() || undefined,
       },
       frequency_text: [
-        medicine.frequency.morning ? 'Morning' : '',
-        medicine.frequency.day ? 'Day' : '',
-        medicine.frequency.night ? 'Night' : '',
-        medicine.frequency.custom?.trim() || '',
-      ].filter(Boolean).join(', '),
+        medicine.frequency.morning ? "Morning" : "",
+        medicine.frequency.day ? "Day" : "",
+        medicine.frequency.night ? "Night" : "",
+        medicine.frequency.custom?.trim() || "",
+      ]
+        .filter(Boolean)
+        .join(", "),
       duration: medicine.duration,
       instruction_type: medicine.instructionType,
       instruction_text:
-        medicine.instructionType === 'custom'
-          ? medicine.customInstruction?.trim() || ''
-          : instructionLabelByType[medicine.instructionType] || '',
+        medicine.instructionType === "custom"
+          ? medicine.customInstruction?.trim() || ""
+          : instructionLabelByType[medicine.instructionType] || "",
       instructions:
-        medicine.instructionType === 'custom'
-          ? medicine.customInstruction?.trim() || ''
-          : instructionLabelByType[medicine.instructionType] || '',
+        medicine.instructionType === "custom"
+          ? medicine.customInstruction?.trim() || ""
+          : instructionLabelByType[medicine.instructionType] || "",
     })),
-    notes: request.notes ?? '',
+    notes: request.notes ?? "",
   };
 
   const { data } = await apiClient.post(
@@ -539,7 +613,9 @@ export async function cancelPrescription(
   doctorName: string,
   doctorSpecialization: string,
 ): Promise<Prescription> {
-  const { data } = await apiClient.patch(`/api/doctors/prescriptions/${prescriptionId}/cancel`);
+  const { data } = await apiClient.patch(
+    `/api/doctors/prescriptions/${prescriptionId}/cancel`,
+  );
   return mapPrescriptionRawToPrescription(
     data.data as DoctorPrescriptionRaw,
     doctorName,
@@ -547,14 +623,99 @@ export async function cancelPrescription(
   );
 }
 
-// TODO: Replace with real API endpoint
-export async function getAllDoctorsAdmin(): Promise<typeof MOCK_ALL_DOCTORS_ADMIN> {
-  await new Promise((r) => setTimeout(r, 500));
-  return MOCK_ALL_DOCTORS_ADMIN;
+export interface AdminDoctorItem {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  specialization: string;
+  experienceYears: number;
+  roomNumber: string;
+  licenseNumber: string;
+  bio: string | null;
+  isVerified: boolean;
+  isActive: boolean;
+  completeProfile: boolean;
+  availabilitiesCount: number;
 }
 
-// TODO: Replace with real API endpoint
-export async function verifyDoctor(doctorId: string): Promise<void> {
-  await new Promise((r) => setTimeout(r, 600));
-  void doctorId;
+export interface CreateDoctorByAdminRequest {
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+}
+
+type AdminUserDoctorRaw = {
+  id: string;
+  role: "doctor";
+  email: string;
+  isActive: boolean;
+  isVerified: boolean;
+  completeProfile: boolean;
+};
+
+export async function getAllDoctorsAdmin(): Promise<AdminDoctorItem[]> {
+  const [doctorProfilesRes, usersRes] = await Promise.all([
+    apiClient.get("/api/doctors/profile/all"),
+    apiClient.get("/api/auth/admin/users", {
+      params: {
+        role: "doctor",
+      },
+    }),
+  ]);
+
+  const doctorProfiles: DoctorProfileFull[] =
+    doctorProfilesRes.data?.data ?? [];
+  const users: AdminUserDoctorRaw[] = usersRes.data?.data ?? [];
+
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  return doctorProfiles.map((raw) => {
+    const doctorCard = transformDoctorFull(raw);
+    const userRow = userMap.get(raw.user_id);
+
+    return {
+      id: raw.doctor_profile_id,
+      userId: raw.user_id,
+      firstName: doctorCard.firstName,
+      lastName: doctorCard.lastName,
+      email: userRow?.email ?? "",
+      specialization: raw.specialization,
+      experienceYears: raw.experience_years,
+      roomNumber: raw.room_number,
+      licenseNumber: raw.license_number ?? "",
+      bio: raw.bio ?? null,
+      isVerified: !!userRow?.isVerified,
+      isActive: userRow?.isActive ?? true,
+      completeProfile: userRow?.completeProfile ?? false,
+      availabilitiesCount: raw.availabilities?.length ?? 0,
+    };
+  });
+}
+
+export async function verifyDoctor(
+  userId: string,
+  isVerified = true,
+): Promise<void> {
+  await apiClient.patch(`/api/auth/admin/users/${userId}/verified`, {
+    isVerified,
+  });
+}
+
+export async function createDoctorByAdmin(
+  payload: CreateDoctorByAdminRequest,
+): Promise<{ credentialsEmailSent: boolean | null }> {
+  const { data } = await apiClient.post("/api/auth/register", {
+    email: payload.email,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    password: payload.password,
+    role: "doctor",
+  });
+
+  return {
+    credentialsEmailSent: data?.data?.credentialsEmailSent ?? null,
+  };
 }

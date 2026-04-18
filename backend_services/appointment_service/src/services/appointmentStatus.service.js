@@ -6,7 +6,10 @@ import {
   InvalidInputError,
 } from "../utils/errors.utils.js";
 import { serviceNames } from "../constant/serviceNames.constant.js";
-import { updateSlotBookingStatus } from "../utils/doctorServiceHelper.js";
+import {
+  updateSlotBookingStatus,
+  getSlotDetailsById,
+} from "../utils/doctorServiceHelper.js";
 import { requestRefund } from "../utils/paymentServiceHelper.js";
 
 const TELEMEDICINE_SERVICE_URL = process.env.TELEMEDICINE_SERVICE_URL;
@@ -32,7 +35,7 @@ const AppointmentStatusService = {
     ];
     if (!cancellableStatuses.includes(appointment.appointment_status)) {
       throw new InvalidInputError(
-        `Appointment cannot be cancelled. Current status: ${appointment.appointment_status}`
+        `Appointment cannot be cancelled. Current status: ${appointment.appointment_status}`,
       );
     }
 
@@ -62,12 +65,12 @@ const AppointmentStatusService = {
           TELEMEDICINE_SERVICE_URL,
           `/api/internal/telemedicine/sessions/${appointment.telemedicine_session_id}/status`,
           serviceNames.APPOINTMENT_SERVICE,
-          { status: "cancelled" }
+          { status: "cancelled" },
         );
       } catch (error) {
         throw new AppError(
           "Failed to cancel telemedicine session. Cancellation aborted.",
-          503
+          503,
         );
       }
     }
@@ -76,13 +79,7 @@ const AppointmentStatusService = {
     return await AppointmentRepository.cancelAppointment(appointmentId);
   },
 
-  async rescheduleAppointment(
-    appointmentId,
-    userId,
-    newSlotId,
-    newScheduledAt,
-    newChannelingMode
-  ) {
+  async rescheduleAppointment(appointmentId, userId, newSlotId) {
     const appointment = await AppointmentRepository.findById(appointmentId);
 
     // Ownership check — only patient can reschedule
@@ -94,7 +91,13 @@ const AppointmentStatusService = {
     const reschedulableStatuses = ["confirmed", "rescheduled"];
     if (!reschedulableStatuses.includes(appointment.appointment_status)) {
       throw new InvalidInputError(
-        `Appointment cannot be rescheduled. Current status: ${appointment.appointment_status}`
+        `Appointment cannot be rescheduled. Current status: ${appointment.appointment_status}`,
+      );
+    }
+
+    if (appointment.slot_id === newSlotId) {
+      throw new InvalidInputError(
+        "Please select a different slot to reschedule.",
       );
     }
 
@@ -111,95 +114,76 @@ const AppointmentStatusService = {
       ];
       if (blockingStatuses.includes(existingAppointment.appointment_status)) {
         throw new InvalidInputError(
-          "This slot is not available for rescheduling."
+          "This slot is not available for rescheduling.",
         );
       }
     }
 
-    // Step 2 — Validate new scheduled_at is not in the past
+    // Step 2 — Fetch slot details and enforce same-doctor/day rules
+    const slotDetails = await getSlotDetailsById(newSlotId);
+    const availabilityRelation = slotDetails?.doctor_availability;
+    const availability = Array.isArray(availabilityRelation)
+      ? availabilityRelation[0]
+      : availabilityRelation;
+    const doctorProfileRelation = availability?.doctor_profiles;
+    const doctorProfile = Array.isArray(doctorProfileRelation)
+      ? doctorProfileRelation[0]
+      : doctorProfileRelation;
+    const profileUserId = doctorProfile?.user_id;
+
+    if (!availability || !profileUserId) {
+      throw new InvalidInputError("Selected slot details are invalid.");
+    }
+
+    if (profileUserId !== appointment.doctor_id) {
+      throw new InvalidInputError(
+        "You can only reschedule within the same doctor's slots.",
+      );
+    }
+
+    if (availability.status !== "scheduled") {
+      throw new InvalidInputError(
+        "Cannot reschedule because this doctor's day has already started or completed.",
+      );
+    }
+
+    if (availability.channeling_mode !== appointment.channeling_mode) {
+      throw new InvalidInputError(
+        "Consultation type cannot be changed during reschedule.",
+      );
+    }
+
+    const newScheduledAt = `${slotDetails.slot_date}T${slotDetails.slot_start_time}`;
     const newScheduledAtDate = new Date(newScheduledAt);
+
+    // Step 3 — Validate new scheduled_at is not in the past
     if (newScheduledAtDate < new Date()) {
       throw new InvalidInputError("Cannot reschedule to a past slot.");
     }
 
-    const oldMode = appointment.channeling_mode;
-    const newMode = newChannelingMode;
-
-    // Step 3 — Release old slot (must succeed)
+    // Step 4 — Release old slot (must succeed)
     try {
       await updateSlotBookingStatus(appointment.slot_id, false);
     } catch (error) {
       throw new AppError(
         "Failed to release old slot. Rescheduling aborted.",
-        503
+        503,
       );
     }
 
-    // Step 4 — Book new slot (must succeed)
+    // Step 5 — Book new slot (must succeed)
     try {
       await updateSlotBookingStatus(newSlotId, true);
     } catch (error) {
-      throw new AppError(
-        "Failed to book new slot. Rescheduling aborted.",
-        503
-      );
+      throw new AppError("Failed to book new slot. Rescheduling aborted.", 503);
     }
 
-    // Step 5 — Handle telemedicine session based on mode change
-    // online → physical: cancel existing session (must succeed)
-    if (oldMode === "online" && newMode === "physical") {
-      if (appointment.telemedicine_session_id) {
-        try {
-          await httpClient.patch(
-            TELEMEDICINE_SERVICE_URL,
-            `/api/internal/telemedicine/sessions/${appointment.telemedicine_session_id}/status`,
-            serviceNames.APPOINTMENT_SERVICE,
-            { status: "cancelled" }
-          );
-        } catch (error) {
-          throw new AppError(
-            "Failed to cancel telemedicine session. Rescheduling aborted.",
-            503
-          );
-        }
-      }
-    }
-
-    // physical → online: create new session (must succeed)
-    if (oldMode === "physical" && newMode === "online") {
-      try {
-        const response = await httpClient.post(
-          TELEMEDICINE_SERVICE_URL,
-          `/api/internal/telemedicine/sessions`,
-          serviceNames.APPOINTMENT_SERVICE,
-          {
-            appointmentId: appointment.id,
-            patientId: appointment.patient_id,
-            doctorId: appointment.doctor_id,
-            scheduledAt: newScheduledAtDate.toISOString(),
-          }
-        );
-
-        if (response.data?.id) {
-          await AppointmentRepository.updateTelemedicineSession(
-            appointment.id,
-            response.data.id
-          );
-        }
-      } catch (error) {
-        throw new AppError(
-          "Failed to create telemedicine session. Rescheduling aborted.",
-          503
-        );
-      }
-    }
-
-    // Step 6 — Update appointment with new slot and mode
+    // Step 6 — Update appointment with new slot only (mode remains unchanged)
     return await AppointmentRepository.updateSlot(
       appointmentId,
       newSlotId,
       newScheduledAtDate.toISOString(),
-      newMode
+      appointment.channeling_mode,
     );
   },
 
@@ -213,7 +197,7 @@ const AppointmentStatusService = {
     const startableStatuses = ["confirmed", "rescheduled"];
     if (!startableStatuses.includes(appointment.appointment_status)) {
       throw new InvalidInputError(
-        `Appointment cannot be started. Current status: ${appointment.appointment_status}`
+        `Appointment cannot be started. Current status: ${appointment.appointment_status}`,
       );
     }
 
@@ -229,7 +213,7 @@ const AppointmentStatusService = {
 
     if (appointment.appointment_status !== "ongoing") {
       throw new InvalidInputError(
-        `Appointment cannot be completed. Current status: ${appointment.appointment_status}`
+        `Appointment cannot be completed. Current status: ${appointment.appointment_status}`,
       );
     }
 

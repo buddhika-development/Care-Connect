@@ -1,27 +1,34 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useForm, Controller, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'sonner';
-import { Camera, Save } from 'lucide-react';
-import { usePatientProfile, useUpdatePatientProfile } from '@/hooks/usePatient';
-import TagInput from '@/components/common/TagInput';
-import FileUpload from '@/components/common/FileUpload';
-import { MedicalDocument } from '@/types/patient';
-import { calculateAge } from '@/lib/utils';
-import { useAuth } from '@/context/AuthContext';
-import { useProfileUIStore } from '@/store/profileStore';
+import { useState, useEffect, useRef } from "react";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { Camera, Save } from "lucide-react";
+import { usePatientProfile, useUpdatePatientProfile } from "@/hooks/usePatient";
+import TagInput from "@/components/common/TagInput";
+import FileUpload from "@/components/common/FileUpload";
+import { MedicalDocument } from "@/types/patient";
+import { calculateAge } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { useProfileUIStore } from "@/store/profileStore";
 
 const schema = z.object({
-  phone: z.string().refine((v) => v.replace(/\D/g, '').length === 10, 'Phone number must contain exactly 10 digits'),
-  dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  gender: z.string().min(1, 'Gender is required'),
-  bloodType: z.string().min(1, 'Blood type is required'),
-  address: z.string().min(15, 'Address must be at least 15 characters'),
-  emergencyContactName: z.string().min(1, 'Emergency contact name is required'),
-  emergencyContactNumber: z.string().min(9, 'Enter a valid number'),
+  firstName: z.string().min(2, "First name is required"),
+  lastName: z.string().min(2, "Last name is required"),
+  phone: z
+    .string()
+    .refine(
+      (v) => v.replace(/\D/g, "").length === 10,
+      "Phone number must contain exactly 10 digits",
+    ),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  gender: z.string().min(1, "Gender is required"),
+  bloodType: z.string().min(1, "Blood type is required"),
+  address: z.string().min(15, "Address must be at least 15 characters"),
+  emergencyContactName: z.string().min(1, "Emergency contact name is required"),
+  emergencyContactNumber: z.string().min(9, "Enter a valid number"),
   allergies: z.array(z.string()),
   chronicConditions: z.array(z.string()),
   currentMedications: z.array(z.string()),
@@ -35,7 +42,9 @@ function ProfileSkeleton() {
       <div className="h-8 skeleton rounded w-48" />
       <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
         <div className="h-24 w-24 skeleton rounded-full" />
-        {[1,2,3,4,5].map(i => <div key={i} className="h-12 skeleton rounded-xl" />)}
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-12 skeleton rounded-xl" />
+        ))}
       </div>
     </div>
   );
@@ -48,26 +57,47 @@ export default function PatientProfilePage() {
   const [age, setAge] = useState<number | null>(null);
   const [documents, setDocuments] = useState<MedicalDocument[]>([]);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [medicalDocumentFiles, setMedicalDocumentFiles] = useState<Array<{ id: string; file: File }>>([]);
-  const [removedDocumentPaths, setRemovedDocumentPaths] = useState<string[]>([]);
+  const [medicalDocumentFiles, setMedicalDocumentFiles] = useState<
+    Array<{ id: string; file: File }>
+  >([]);
+  const [removedDocumentPaths, setRemovedDocumentPaths] = useState<string[]>(
+    [],
+  );
   const previewUrl = useProfileUIStore((s) => s.profileImagePreview);
   const setPreviewUrl = useProfileUIStore((s) => s.setProfileImagePreview);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      phone: '', dateOfBirth: '', gender: '', bloodType: '',
-      address: '', emergencyContactName: '', emergencyContactNumber: '',
-      allergies: [], chronicConditions: [], currentMedications: [],
+      firstName: "",
+      lastName: "",
+      phone: "",
+      dateOfBirth: "",
+      gender: "",
+      bloodType: "",
+      address: "",
+      emergencyContactName: "",
+      emergencyContactNumber: "",
+      allergies: [],
+      chronicConditions: [],
+      currentMedications: [],
     },
   });
 
-  const dob = useWatch({ control, name: 'dateOfBirth' });
+  const dob = useWatch({ control, name: "dateOfBirth" });
 
   useEffect(() => {
     if (profile) {
       reset({
+        firstName: profile.firstName,
+        lastName: profile.lastName,
         phone: profile.phone,
         dateOfBirth: profile.dateOfBirth,
         gender: profile.gender,
@@ -85,13 +115,15 @@ export default function PatientProfilePage() {
       setRemovedDocumentPaths([]);
     } else {
       reset({
-        phone: '',
-        dateOfBirth: '',
-        gender: '',
-        bloodType: '',
-        address: '',
-        emergencyContactName: '',
-        emergencyContactNumber: '',
+        firstName: user?.firstName ?? "",
+        lastName: user?.lastName ?? "",
+        phone: "",
+        dateOfBirth: "",
+        gender: "",
+        bloodType: "",
+        address: "",
+        emergencyContactName: "",
+        emergencyContactNumber: "",
         allergies: [],
         chronicConditions: [],
         currentMedications: [],
@@ -101,7 +133,7 @@ export default function PatientProfilePage() {
       setMedicalDocumentFiles([]);
       setRemovedDocumentPaths([]);
     }
-  }, [profile, reset]);
+  }, [profile, reset, user?.firstName, user?.lastName]);
 
   useEffect(() => {
     if (dob) setAge(calculateAge(dob));
@@ -109,59 +141,75 @@ export default function PatientProfilePage() {
 
   const onSubmit = (data: FormData) => {
     if (!user) {
-      toast.error('Session expired. Please log in again.');
+      toast.error("Session expired. Please log in again.");
       return;
     }
 
-    updateProfile({
-      mode: profile?.id ? 'update' : 'create',
-      payload: {
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        contactNumber: data.phone,
-        address: data.address,
-        dateOfBirth: data.dateOfBirth,
-        age: String(age ?? calculateAge(data.dateOfBirth)),
-        gender: data.gender,
-        bloodType: data.bloodType,
-        emergencyContactName: data.emergencyContactName,
-        emergencyContactNumber: data.emergencyContactNumber,
-        allergies: data.allergies,
-        chronicConditions: data.chronicConditions,
-        currentMedications: data.currentMedications,
+    updateProfile(
+      {
+        mode: profile?.id ? "update" : "create",
+        payload: {
+          email: user.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          contactNumber: data.phone,
+          address: data.address,
+          dateOfBirth: data.dateOfBirth,
+          age: String(age ?? calculateAge(data.dateOfBirth)),
+          gender: data.gender,
+          bloodType: data.bloodType,
+          emergencyContactName: data.emergencyContactName,
+          emergencyContactNumber: data.emergencyContactNumber,
+          allergies: data.allergies,
+          chronicConditions: data.chronicConditions,
+          currentMedications: data.currentMedications,
+        },
+        profileImageFile,
+        medicalDocumentFiles: medicalDocumentFiles.map((item) => item.file),
+        removedDocumentPaths,
       },
-      profileImageFile,
-      medicalDocumentFiles: medicalDocumentFiles.map((item) => item.file),
-      removedDocumentPaths,
-    }, {
-      onSuccess: () => {
-        // updateUserProfileStatus(true) called inside hook's onSuccess
-        toast.success(profile?.id ? 'Profile updated successfully!' : 'Profile created successfully!');
-        setProfileImageFile(null);
-        setMedicalDocumentFiles([]);
-        setRemovedDocumentPaths([]);
+      {
+        onSuccess: () => {
+          // updateUserProfileStatus(true) called inside hook's onSuccess
+          toast.success(
+            profile?.id
+              ? "Profile updated successfully!"
+              : "Profile created successfully!",
+          );
+          setProfileImageFile(null);
+          setMedicalDocumentFiles([]);
+          setRemovedDocumentPaths([]);
+        },
+        onError: () => toast.error("Failed to update profile. Try again."),
       },
-      onError: () => toast.error('Failed to update profile. Try again.'),
-    });
+    );
   };
 
   if (isLoading) return <ProfileSkeleton />;
-  if (isError) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-error font-medium mb-3">Failed to load profile.</p>
-      <button onClick={() => refetch()} className="px-4 py-2 bg-primary text-white rounded-xl text-sm">Retry</button>
-    </div>
-  );
+  if (isError)
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-error font-medium mb-3">Failed to load profile.</p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-primary text-white rounded-xl text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
 
-  const inputClass = 'w-full px-4 py-2.5 rounded-xl border border-border bg-background text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm disabled:bg-secondary disabled:text-text-secondary disabled:cursor-not-allowed';
+  const inputClass =
+    "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm disabled:bg-secondary disabled:text-text-secondary disabled:cursor-not-allowed";
   const profileImageSrc = previewUrl || profile?.profileImage || null;
 
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-text">Profile Settings</h1>
-        <p className="text-text-secondary text-sm mt-1">Manage your personal and medical information</p>
+        <p className="text-text-secondary text-sm mt-1">
+          Manage your personal and medical information
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -179,8 +227,8 @@ export default function PatientProfilePage() {
                   />
                 ) : (
                   <span className="text-2xl font-bold text-primary">
-                    {(user?.firstName?.[0] ?? profile?.firstName?.[0] ?? '')}
-                    {(user?.lastName?.[0] ?? profile?.lastName?.[0] ?? '')}
+                    {user?.firstName?.[0] ?? profile?.firstName?.[0] ?? ""}
+                    {user?.lastName?.[0] ?? profile?.lastName?.[0] ?? ""}
                   </span>
                 )}
               </div>
@@ -205,9 +253,15 @@ export default function PatientProfilePage() {
               />
             </div>
             <div>
-              <p className="text-sm font-medium text-text">{user?.firstName} {user?.lastName}</p>
-              <p className="text-xs text-text-muted mt-0.5">JPG, PNG or GIF. Max 5 MB.</p>
-              <p className="text-xs text-text-muted mt-1">Email is managed by account settings and cannot be changed here.</p>
+              <p className="text-sm font-medium text-text">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-xs text-text-muted mt-0.5">
+                JPG, PNG or GIF. Max 5 MB.
+              </p>
+              <p className="text-xs text-text-muted mt-1">
+                Email is managed by account settings and cannot be changed here.
+              </p>
             </div>
           </div>
         </div>
@@ -217,68 +271,134 @@ export default function PatientProfilePage() {
           <h2 className="font-semibold text-text">Personal Information</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">First Name</label>
-              <input value={user?.firstName ?? ''} disabled className={inputClass} />
+              <label className="block text-sm font-medium text-text mb-1.5">
+                First Name
+              </label>
+              <input {...register("firstName")} className={inputClass} />
+              {errors.firstName && (
+                <p className="text-error text-xs mt-1">
+                  {errors.firstName.message}
+                </p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">Last Name</label>
-              <input value={user?.lastName ?? ''} disabled className={inputClass} />
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Last Name
+              </label>
+              <input {...register("lastName")} className={inputClass} />
+              {errors.lastName && (
+                <p className="text-error text-xs mt-1">
+                  {errors.lastName.message}
+                </p>
+              )}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-text mb-1.5">Email</label>
-            <input value={user?.email ?? ''} disabled className={inputClass} />
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Email
+            </label>
+            <input value={user?.email ?? ""} disabled className={inputClass} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text mb-1.5">Account Verification</label>
-            <input value={user?.isVerified ? 'Verified' : 'Pending Verification'} disabled className={inputClass} />
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Account Verification
+            </label>
+            <input
+              value={user?.isVerified ? "Verified" : "Pending Verification"}
+              disabled
+              className={inputClass}
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text mb-1.5">Phone Number</label>
-            <input {...register('phone')} placeholder="+94 77 000 0000" className={inputClass} />
-            {errors.phone && <p className="text-error text-xs mt-1">{errors.phone.message}</p>}
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Phone Number
+            </label>
+            <input
+              {...register("phone")}
+              placeholder="+94 77 000 0000"
+              className={inputClass}
+            />
+            {errors.phone && (
+              <p className="text-error text-xs mt-1">{errors.phone.message}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">Date of Birth</label>
-              <input {...register('dateOfBirth')} type="date" className={inputClass} />
-              {errors.dateOfBirth && <p className="text-error text-xs mt-1">{errors.dateOfBirth.message}</p>}
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Date of Birth
+              </label>
+              <input
+                {...register("dateOfBirth")}
+                type="date"
+                className={inputClass}
+              />
+              {errors.dateOfBirth && (
+                <p className="text-error text-xs mt-1">
+                  {errors.dateOfBirth.message}
+                </p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">Age (Auto-calculated)</label>
-              <input value={age !== null ? `${age} years` : ''} disabled className={inputClass} />
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Age (Auto-calculated)
+              </label>
+              <input
+                value={age !== null ? `${age} years` : ""}
+                disabled
+                className={inputClass}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">Gender</label>
-              <select {...register('gender')} className={inputClass}>
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Gender
+              </label>
+              <select {...register("gender")} className={inputClass}>
                 <option value="">Select gender</option>
                 <option>Male</option>
                 <option>Female</option>
                 <option>Other</option>
                 <option>Prefer not to say</option>
               </select>
-              {errors.gender && <p className="text-error text-xs mt-1">{errors.gender.message}</p>}
+              {errors.gender && (
+                <p className="text-error text-xs mt-1">
+                  {errors.gender.message}
+                </p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">Blood Type</label>
-              <select {...register('bloodType')} className={inputClass}>
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Blood Type
+              </label>
+              <select {...register("bloodType")} className={inputClass}>
                 <option value="">Select blood type</option>
-                {['A+','A-','B+','B-','O+','O-','AB+','AB-'].map(t => <option key={t}>{t}</option>)}
+                {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
               </select>
-              {errors.bloodType && <p className="text-error text-xs mt-1">{errors.bloodType.message}</p>}
+              {errors.bloodType && (
+                <p className="text-error text-xs mt-1">
+                  {errors.bloodType.message}
+                </p>
+              )}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-text mb-1.5">Address</label>
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Address
+            </label>
             <textarea
-              {...register('address')}
+              {...register("address")}
               rows={2}
               placeholder="42 Galle Road, Colombo 03"
               className={`${inputClass} resize-none`}
             />
-            {errors.address && <p className="text-error text-xs mt-1">{errors.address.message}</p>}
+            {errors.address && (
+              <p className="text-error text-xs mt-1">
+                {errors.address.message}
+              </p>
+            )}
           </div>
         </div>
 
@@ -287,14 +407,34 @@ export default function PatientProfilePage() {
           <h2 className="font-semibold text-text">Emergency Contact</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">Contact Name</label>
-              <input {...register('emergencyContactName')} placeholder="Roshan Perera" className={inputClass} />
-              {errors.emergencyContactName && <p className="text-error text-xs mt-1">{errors.emergencyContactName.message}</p>}
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Contact Name
+              </label>
+              <input
+                {...register("emergencyContactName")}
+                placeholder="Roshan Perera"
+                className={inputClass}
+              />
+              {errors.emergencyContactName && (
+                <p className="text-error text-xs mt-1">
+                  {errors.emergencyContactName.message}
+                </p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">Contact Number</label>
-              <input {...register('emergencyContactNumber')} placeholder="+94 71 000 0000" className={inputClass} />
-              {errors.emergencyContactNumber && <p className="text-error text-xs mt-1">{errors.emergencyContactNumber.message}</p>}
+              <label className="block text-sm font-medium text-text mb-1.5">
+                Contact Number
+              </label>
+              <input
+                {...register("emergencyContactNumber")}
+                placeholder="+94 71 000 0000"
+                className={inputClass}
+              />
+              {errors.emergencyContactNumber && (
+                <p className="text-error text-xs mt-1">
+                  {errors.emergencyContactNumber.message}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -303,27 +443,51 @@ export default function PatientProfilePage() {
         <div className="bg-card rounded-2xl border border-border shadow-card p-6 space-y-4">
           <h2 className="font-semibold text-text">Medical Information</h2>
           <div>
-            <label className="block text-sm font-medium text-text mb-1.5">Allergies</label>
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Allergies
+            </label>
             <Controller
               name="allergies"
               control={control}
-              render={({ field }) => <TagInput value={field.value} onChange={field.onChange} placeholder="e.g. Penicillin (press Enter)" />}
+              render={({ field }) => (
+                <TagInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="e.g. Penicillin (press Enter)"
+                />
+              )}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text mb-1.5">Chronic Conditions</label>
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Chronic Conditions
+            </label>
             <Controller
               name="chronicConditions"
               control={control}
-              render={({ field }) => <TagInput value={field.value} onChange={field.onChange} placeholder="e.g. Diabetes (press Enter)" />}
+              render={({ field }) => (
+                <TagInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="e.g. Diabetes (press Enter)"
+                />
+              )}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text mb-1.5">Current Medications</label>
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Current Medications
+            </label>
             <Controller
               name="currentMedications"
               control={control}
-              render={({ field }) => <TagInput value={field.value} onChange={field.onChange} placeholder="e.g. Metformin (press Enter)" />}
+              render={({ field }) => (
+                <TagInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="e.g. Metformin (press Enter)"
+                />
+              )}
             />
           </div>
         </div>
@@ -338,23 +502,30 @@ export default function PatientProfilePage() {
               const newDoc: MedicalDocument = {
                 id: localId,
                 fileName: file.name,
-                uploadDate: new Date().toISOString().split('T')[0],
-                fileUrl: '#',
+                uploadDate: new Date().toISOString().split("T")[0],
+                fileUrl: "#",
                 fileSize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
               };
-              setDocuments(prev => [...prev, newDoc]);
-              setMedicalDocumentFiles(prev => [...prev, { id: localId, file }]);
-              toast.success('Document uploaded.');
+              setDocuments((prev) => [...prev, newDoc]);
+              setMedicalDocumentFiles((prev) => [
+                ...prev,
+                { id: localId, file },
+              ]);
+              toast.success("Document uploaded.");
             }}
             onDelete={(id) => {
               const target = documents.find((doc) => doc.id === id);
               if (target?.storagePath) {
                 setRemovedDocumentPaths((prev) =>
-                  prev.includes(target.storagePath!) ? prev : [...prev, target.storagePath!],
+                  prev.includes(target.storagePath!)
+                    ? prev
+                    : [...prev, target.storagePath!],
                 );
               }
-              setMedicalDocumentFiles((prev) => prev.filter((item) => item.id !== id));
-              setDocuments(prev => prev.filter(d => d.id !== id));
+              setMedicalDocumentFiles((prev) =>
+                prev.filter((item) => item.id !== id),
+              );
+              setDocuments((prev) => prev.filter((d) => d.id !== id));
             }}
           />
         </div>
@@ -365,7 +536,7 @@ export default function PatientProfilePage() {
           className="w-full py-3 px-6 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-all shadow-sm disabled:opacity-60 flex items-center justify-center gap-2"
         >
           <Save className="w-4 h-4" />
-          {isPending ? 'Saving...' : 'Save Changes'}
+          {isPending ? "Saving..." : "Save Changes"}
         </button>
       </form>
     </div>

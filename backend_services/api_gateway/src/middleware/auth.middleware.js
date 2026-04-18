@@ -53,6 +53,55 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
+export const authenticateIfPresent = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return next();
+    }
+
+    if (!authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Access token format is invalid",
+      });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = verifyAccessToken(token);
+
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired access token",
+      });
+    }
+
+    const { data, error } = await getUserById(decoded.userId);
+    if (error || !data || !data.is_active) {
+      return res.status(401).json({
+        success: false,
+        message: "User account is inactive or does not exist",
+      });
+    }
+
+    req.user = {
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+    };
+
+    next();
+  } catch (error) {
+    console.error("Optional authentication middleware error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Authentication failed",
+    });
+  }
+};
+
 export const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     console.log(

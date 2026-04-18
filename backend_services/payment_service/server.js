@@ -5,6 +5,7 @@ import morgan from "morgan";
 import path from "path";
 import { fileURLToPath } from "url";
 import paymentRoutes from "./src/routes/payment.routes.js";
+import internalRoutes from "./src/routes/internal.routes.js";
 import { errorHandler } from "./src/middleware/errorHandler.middleware.js";
 
 dotenv.config();
@@ -37,6 +38,7 @@ app.use("/api/payments/webhook", express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use("/api/payments", paymentRoutes);
+app.use("/api/internal", internalRoutes);
 
 // Global error handler — catches anything thrown in controllers
 app.use(errorHandler);

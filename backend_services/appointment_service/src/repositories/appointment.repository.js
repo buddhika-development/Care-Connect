@@ -65,6 +65,17 @@ const AppointmentRepository = {
     return data || [];
   },
 
+  async findAll() {
+    const { data, error } = await supabase
+      .schema("appointments")
+      .from("appointments")
+      .select("*")
+      .order("scheduled_at", { ascending: false });
+
+    if (error) throw new DatabaseError(error.message);
+    return data || [];
+  },
+
   async findByDoctorIdAndDate(doctorId, date) {
     const { data, error } = await supabase
       .schema("appointments")
@@ -78,7 +89,7 @@ const AppointmentRepository = {
     if (error) throw new DatabaseError(error.message);
     return data || [];
   },
-  
+
   async findPendingExpired(cutoffTime) {
     const { data, error } = await supabase
       .schema("appointments")
@@ -122,7 +133,12 @@ const AppointmentRepository = {
     return data;
   },
 
-  async updateStatusAndPayment(appointmentId, status, paymentStatus, paymentId) {
+  async updateStatusAndPayment(
+    appointmentId,
+    status,
+    paymentStatus,
+    paymentId,
+  ) {
     const { data, error } = await supabase
       .schema("appointments")
       .from("appointments")
@@ -186,7 +202,6 @@ const AppointmentRepository = {
     if (!data) throw new NotFoundError("Appointment");
     return data;
   },
-
 };
 
 export default AppointmentRepository;

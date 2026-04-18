@@ -25,6 +25,27 @@ export async function findPaymentByAppointmentId(appointmentId) {
   return data; // null if no payment found
 }
 
+export async function findPaymentById(paymentId) {
+  const { data, error } = await supabase
+    .from("payment")
+    .select("*")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (error) throw new Error(`Failed to fetch payment: ${error.message}`);
+  return data;
+}
+
+export async function findAllPayments() {
+  const { data, error } = await supabase
+    .from("payment")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch payments: ${error.message}`);
+  return data || [];
+}
+
 // Update payment status after webhook is received from PayHere
 export async function updatePaymentByAppointmentId(appointmentId, updateData) {
   const { data, error } = await supabase
@@ -35,5 +56,24 @@ export async function updatePaymentByAppointmentId(appointmentId, updateData) {
     .single();
 
   if (error) throw new Error(`Failed to update payment: ${error.message}`);
+  return data;
+}
+
+export async function updatePaymentStatusById(paymentId, status) {
+  const { data, error } = await supabase
+    .from("payment")
+    .update({ status })
+    .eq("id", paymentId)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to update payment status: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Payment not found");
+  }
+
   return data;
 }

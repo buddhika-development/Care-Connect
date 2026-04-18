@@ -46,3 +46,12 @@ export async function getPatientProfileByUserId(userId) {
 
   return { patient: data, patientError: error };
 }
+
+export async function getPatientProfilesByUserIds(userIds = []) {
+  const { data, error } = await supabase
+    .from("patient_profile")
+    .select("user_id, first_name, last_name, email, contact_no")
+    .in("user_id", userIds);
+
+  return { data, error };
+}

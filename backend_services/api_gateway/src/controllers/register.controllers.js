@@ -10,6 +10,8 @@ export async function registerController(req, res, next) {
       lastName,
       role,
       password,
+      actorRole: req.user?.role,
+      actorUserId: req.user?.userId,
     });
     if (result.success) {
       return ApiResponse.success(res, {
@@ -18,6 +20,7 @@ export async function registerController(req, res, next) {
           email: result.data[0].email,
           firstName: result.data[0].first_name,
           lastName: result.data[0].last_name,
+          credentialsEmailSent: result.credentialsEmailSent ?? null,
         },
       });
     }

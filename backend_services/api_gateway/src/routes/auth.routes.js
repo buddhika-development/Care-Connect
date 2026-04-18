@@ -5,14 +5,28 @@ import { registerController } from "../controllers/register.controllers.js";
 import { RefreshTokenController } from "../controllers/refresh.controllers.js";
 import { logoutController } from "../controllers/logout.controllers.js";
 import { ActivateUserController } from "../controllers/activateUser.controller.js";
-import { authenticate, authorize } from "../middleware/auth.middleware.js";
+import {
+  getAdminUsersController,
+  updateDoctorVerificationStatusController,
+  updateUserActiveStatusController,
+} from "../controllers/adminUsers.controllers.js";
+import {
+  authenticate,
+  authenticateIfPresent,
+  authorize,
+} from "../middleware/auth.middleware.js";
 
 const authRoutes = Router();
 
 //authRoutes.post("/login", authLimiter, loginController);
 authRoutes.post("/login", loginController);
 
-authRoutes.post("/register", authLimiter, registerController);
+authRoutes.post(
+  "/register",
+  authLimiter,
+  authenticateIfPresent,
+  registerController,
+);
 
 authRoutes.post("/logout", authLimiter, logoutController);
 
@@ -22,6 +36,27 @@ authRoutes.patch(
   authenticate,
   authorize("admin"),
   ActivateUserController,
+);
+
+authRoutes.get(
+  "/admin/users",
+  authenticate,
+  authorize("admin"),
+  getAdminUsersController,
+);
+
+authRoutes.patch(
+  "/admin/users/:userId/active",
+  authenticate,
+  authorize("admin"),
+  updateUserActiveStatusController,
+);
+
+authRoutes.patch(
+  "/admin/users/:userId/verified",
+  authenticate,
+  authorize("admin"),
+  updateDoctorVerificationStatusController,
 );
 
 authRoutes.get("/refresh-token", RefreshTokenController);

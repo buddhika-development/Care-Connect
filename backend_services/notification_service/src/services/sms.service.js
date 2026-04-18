@@ -2,37 +2,35 @@ import twilio from "twilio";
 import { NotificationDeliveryError } from "../utils/errors.utils.js";
 
 const getClient = () => {
+  // TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN are the two required credentials
+  // Without Account SID, Twilio client can't authenticate at all
   return twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 };
 
-/**
- * Resolves the Twilio sender config. Priority:
- *  1. TWILIO_MESSAGING_SERVICE_SID — recommended, handles routing automatically
- *  2. TWILIO_ALPHANUMERIC_SENDER   — e.g. "CareConnect" (up to 11 chars, no E.164 needed)
- *  3. TWILIO_PHONE_NUMBER          — must be a Twilio-purchased number in E.164 format
- */
 const getSenderConfig = () => {
-  if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
-    return { messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID };
-  }
-  if (process.env.TWILIO_ALPHANUMERIC_SENDER) {
-    return { from: process.env.TWILIO_ALPHANUMERIC_SENDER };
-  }
+  // Priority order for sender — use whichever is configured
+  // For now we just use TWILIO_PHONE_NUMBER since that's what you have
+
+  // if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
+  //   // MG... format — handles routing automatically
+  //   return { messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID };
+  // }
+
+  // if (process.env.TWILIO_ALPHANUMERIC_SENDER) {
+  //   // Brand name like "CareConnect" — not supported in all countries
+  //   return { from: process.env.TWILIO_ALPHANUMERIC_SENDER };
+  // }
+
   if (process.env.TWILIO_PHONE_NUMBER) {
+    // E.164 format like +17622043443
     return { from: process.env.TWILIO_PHONE_NUMBER };
   }
+
   throw new NotificationDeliveryError(
-    "No Twilio sender configured. Set TWILIO_MESSAGING_SERVICE_SID, TWILIO_ALPHANUMERIC_SENDER, or TWILIO_PHONE_NUMBER."
+    "No Twilio sender configured. Set TWILIO_MESSAGING_SERVICE_SID, TWILIO_ALPHANUMERIC_SENDER, or TWILIO_PHONE_NUMBER.",
   );
 };
 
-/**
- * Sends an SMS notification via Twilio.
- * @param {string} to - Recipient phone number in E.164 format (e.g. +94771234567)
- * @param {string} title - Notification title (prepended to content)
- * @param {string} content - Notification body
- * @returns {Promise<{ sid: string }>}
- */
 export const sendSms = async (to, title, content) => {
   const client = getClient();
   const senderConfig = getSenderConfig();

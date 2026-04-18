@@ -40,6 +40,8 @@ export const sendEmail = async (to, title, content) => {
     return { messageId: info.messageId };
   } catch (err) {
     console.error("Email delivery failed:", err.message);
-    throw new NotificationDeliveryError(`Email delivery failed: ${err.message}`);
+    throw new NotificationDeliveryError(
+      `Email delivery failed: ${err.message}`,
+    );
   }
 };

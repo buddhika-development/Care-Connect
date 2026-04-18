@@ -11,42 +11,49 @@ router.post(
   "/",
   extractUser,
   authorize("patient", "doctor"),
-  AppointmentController.createAppointment
+  AppointmentController.createAppointment,
 );
 
 router.get(
   "/",
   extractUser,
   authorize("patient", "doctor"),
-  AppointmentController.getAppointments
+  AppointmentController.getAppointments,
 );
 
 router.get(
   "/doctor/day/:date",
   extractUser,
   authorize("doctor"),
-  AppointmentController.getDoctorAppointmentsByDate
+  AppointmentController.getDoctorAppointmentsByDate,
+);
+
+router.get(
+  "/admin/all",
+  extractUser,
+  authorize("admin"),
+  AppointmentController.getAllAppointmentsForAdmin,
 );
 
 router.get(
   "/:appointmentId",
   extractUser,
   authorize("patient", "doctor"),
-  AppointmentController.getAppointmentById
+  AppointmentController.getAppointmentById,
 );
 
 router.patch(
   "/:appointmentId/cancel",
   extractUser,
   authorize("patient", "doctor"),
-  AppointmentStatusController.cancelAppointment
+  AppointmentStatusController.cancelAppointment,
 );
 
 router.patch(
   "/:appointmentId/reschedule",
   extractUser,
-  authorize("patient", "doctor" ),
-  AppointmentStatusController.rescheduleAppointment
+  authorize("patient"),
+  AppointmentStatusController.rescheduleAppointment,
 );
 
 // Doctor routes
@@ -54,14 +61,14 @@ router.patch(
   "/:appointmentId/start",
   extractUser,
   authorize("doctor"),
-  AppointmentStatusController.startAppointment
+  AppointmentStatusController.startAppointment,
 );
 
 router.patch(
   "/:appointmentId/complete",
   extractUser,
   authorize("doctor"),
-  AppointmentStatusController.completeAppointment
+  AppointmentStatusController.completeAppointment,
 );
 
 export default router;
