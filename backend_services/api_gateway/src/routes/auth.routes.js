@@ -18,8 +18,8 @@ import {
 
 const authRoutes = Router();
 
-//authRoutes.post("/login", authLimiter, loginController);
-authRoutes.post("/login", loginController);
+authRoutes.post("/login", authLimiter, loginController);
+//authRoutes.post("/login", loginController);
 
 authRoutes.post(
   "/register",
