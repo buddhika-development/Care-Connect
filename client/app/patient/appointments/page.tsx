@@ -377,7 +377,8 @@ export default function PatientAppointmentsPage() {
                   )}
 
                   <div className="flex flex-wrap gap-2 pt-2 border-t border-border-light">
-                    {apt.status === "confirmed" && (
+                    {(apt.status === "confirmed" ||
+                      apt.status === "rescheduled") && (
                       <button
                         onClick={() => setCancelTarget(apt)}
                         className="px-4 py-2 text-sm rounded-xl border border-error text-error hover:bg-error-light transition-all font-medium"
@@ -410,7 +411,9 @@ export default function PatientAppointmentsPage() {
                       </button>
                     )}
 
-                    {(apt.status === "confirmed" || apt.status === "ongoing") &&
+                    {(apt.status === "confirmed" ||
+                      apt.status === "ongoing" ||
+                      apt.status === "rescheduled") &&
                       isOnline && (
                         <TelemedicineJoinButton
                           sessionId={apt.telemedicineSessionId}
