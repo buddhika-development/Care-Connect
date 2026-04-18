@@ -10,7 +10,7 @@ const AppointmentStatusController = {
       const appointment = await AppointmentStatusService.cancelAppointment(
         appointmentId,
         userId,
-        role
+        role,
       );
 
       return res.status(200).json({
@@ -27,20 +27,16 @@ const AppointmentStatusController = {
     try {
       const { userId } = req.user;
       const { appointmentId } = req.params;
-      const { newSlotId, newScheduledAt, newChannelingMode } = req.body;
+      const { newSlotId } = req.body;
 
       AppointmentValidator.validateRescheduleAppointment({
         newSlotId,
-        newScheduledAt,
-        newChannelingMode,
       });
 
       const appointment = await AppointmentStatusService.rescheduleAppointment(
         appointmentId,
         userId,
         newSlotId,
-        newScheduledAt,
-        newChannelingMode
       );
 
       return res.status(200).json({
@@ -60,7 +56,7 @@ const AppointmentStatusController = {
 
       const appointment = await AppointmentStatusService.startAppointment(
         appointmentId,
-        userId
+        userId,
       );
 
       return res.status(200).json({
@@ -80,7 +76,7 @@ const AppointmentStatusController = {
 
       const appointment = await AppointmentStatusService.completeAppointment(
         appointmentId,
-        userId
+        userId,
       );
 
       return res.status(200).json({

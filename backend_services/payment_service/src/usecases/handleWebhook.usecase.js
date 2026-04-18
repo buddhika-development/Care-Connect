@@ -4,6 +4,7 @@ import {
   updatePaymentByAppointmentId,
   findPaymentByAppointmentId,
 } from "../repositories/payment.repository.js";
+import { sendPaymentStatusSms } from "../utils/paymentSmsNotification.helper.js";
 
 export async function HandleWebhookUsecase(webhookData) {
   // ── 1. Log incoming webhook for debugging ─────────────────────
@@ -162,6 +163,24 @@ export async function HandleWebhookUsecase(webhookData) {
       "Warning: Failed to notify appointment service:",
       err.message,
     );
+  }
+
+  const shouldSendSms =
+    newStatus !== "unknown" &&
+    (payment.status !== newStatus || payment.payhere_payment_id !== payment_id);
+
+  if (shouldSendSms) {
+    try {
+      await sendPaymentStatusSms(updatedPayment, newStatus);
+      console.log(
+        `Payment notification sent for appointment ${order_id} with status ${newStatus}`,
+      );
+    } catch (error) {
+      console.error(
+        "Warning: Failed to send payment notification:",
+        error.message,
+      );
+    }
   }
 
   return {

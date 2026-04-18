@@ -15,6 +15,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../utils/errors.utils.js";
+import { CompleteProfileService } from "../services/completeProfile.service.js";
 
 export async function UpdatePatientProfileUsecase(
   userId,
@@ -246,6 +247,22 @@ export async function UpdatePatientProfileUsecase(
 
     if (updateError || !updatedProfile) {
       throw new AppError("Failed to update patient profile", 500, updateError);
+    }
+
+    const serviceResponse = await CompleteProfileService(
+      firstName,
+      lastName,
+      userId,
+    );
+
+    if (serviceResponse.data.userId !== userId) {
+      throw new ValidationError(
+        "Profile completion failed for the updated profile",
+      );
+    }
+
+    if (!serviceResponse.success) {
+      throw new AppError("Failed to sync user name update", 500);
     }
 
     return {

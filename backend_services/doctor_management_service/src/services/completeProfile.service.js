@@ -1,12 +1,11 @@
 import { ValidationError } from "../utils/errors.utils.js";
 import axios from "axios";
 
-export async function CompleteProfileService(fullName, userId) {
+export async function CompleteProfileService(firstName, lastName, userId) {
   try {
-    const firstName = fullName;
-    if (!fullName || !userId) {
+    if (!firstName || !userId) {
       throw new ValidationError(
-        "fullName and userId are required to complete profile",
+        "firstName and userId are required to complete profile",
       );
     }
 
@@ -14,6 +13,7 @@ export async function CompleteProfileService(fullName, userId) {
       `${process.env.API_GATEWAY_URL}/api/internal/${userId}/profile-complete`,
       {
         firstName,
+        lastName: lastName || "",
         completeProfile: true,
       },
       {

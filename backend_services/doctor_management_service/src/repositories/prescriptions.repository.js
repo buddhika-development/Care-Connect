@@ -60,7 +60,7 @@ export const getDoctorProfilesByIds = async (doctorProfileIds) => {
 
   const { data, error } = await doctorDb
     .from("doctor_profiles")
-    .select("id, first_name, last_name, specialization")
+    .select("id, full_name, specialization")
     .in("id", doctorProfileIds);
 
   if (error) throw error;

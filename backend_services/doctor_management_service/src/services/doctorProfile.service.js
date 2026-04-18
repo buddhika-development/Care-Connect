@@ -14,6 +14,16 @@ import {
 } from "../utils/errors.utils.js";
 import { CompleteProfileService } from "./completeProfile.service.js";
 
+const splitFullName = (fullName = "") => {
+  const parts = String(fullName).trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" "),
+  };
+};
+
 // Create doctor profile by logged-in doctor
 export const createMyDoctorProfileService = async (user, body) => {
   // Check logged-in user info exists
@@ -28,6 +38,8 @@ export const createMyDoctorProfileService = async (user, body) => {
 
   const {
     full_name,
+    first_name,
+    last_name,
     specialization,
     license_number,
     experience_years,
@@ -68,7 +80,16 @@ export const createMyDoctorProfileService = async (user, body) => {
     throw new DatabaseError(error.message);
   }
 
-  const serviceResponse = await CompleteProfileService(full_name, user.userId);
+  const parsedName = splitFullName(full_name);
+  const resolvedFirstName = first_name?.trim() || parsedName.firstName;
+  const resolvedLastName =
+    last_name !== undefined ? String(last_name).trim() : parsedName.lastName;
+
+  const serviceResponse = await CompleteProfileService(
+    resolvedFirstName,
+    resolvedLastName,
+    user.userId,
+  );
   console.log(
     "CompleteProfileService response in createMyDoctorProfileService:",
     serviceResponse,
@@ -154,8 +175,18 @@ export const updateMyDoctorProfileService = async (user, body) => {
     throw new ValidationError("No valid fields provided for update");
   }
 
+  const parsedName = splitFullName(
+    body.full_name ?? existingProfileResult.data.full_name,
+  );
+  const resolvedFirstName = body.first_name?.trim() || parsedName.firstName;
+  const resolvedLastName =
+    body.last_name !== undefined
+      ? String(body.last_name).trim()
+      : parsedName.lastName;
+
   const serviceResponse = await CompleteProfileService(
-    body.full_name,
+    resolvedFirstName,
+    resolvedLastName,
     user.userId,
   );
   console.log(

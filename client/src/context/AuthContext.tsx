@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, {
   createContext,
@@ -7,16 +7,16 @@ import React, {
   useEffect,
   useRef,
   useState,
-} from 'react';
-import { toast } from 'sonner';
+} from "react";
+import { toast } from "sonner";
 import {
   loginApi,
   logoutApi,
   refreshSessionApi,
   AuthUser,
-} from '@/services/authService';
-import { setAccessToken } from '@/lib/axios';
-import { UserRole } from '@/types/common';
+} from "@/services/authService";
+import { setAccessToken } from "@/lib/axios";
+import { UserRole } from "@/types/common";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -27,6 +27,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfileStatus: (complete: boolean) => void;
+  updateUserName: (firstName: string, lastName: string) => void;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -38,14 +39,14 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // to perform server-side role-based redirects. NOT used for security.
 
 function setRoleCookie(role: UserRole) {
-  if (typeof document !== 'undefined') {
+  if (typeof document !== "undefined") {
     document.cookie = `role=${role}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
   }
 }
 
 function clearRoleCookie() {
-  if (typeof document !== 'undefined') {
-    document.cookie = 'role=; path=/; max-age=0; SameSite=Lax';
+  if (typeof document !== "undefined") {
+    document.cookie = "role=; path=/; max-age=0; SameSite=Lax";
   }
 }
 
@@ -114,6 +115,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => (prev ? { ...prev, completeProfile: complete } : prev));
   }, []);
 
+  const updateUserName = useCallback((firstName: string, lastName: string) => {
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            firstName,
+            lastName,
+          }
+        : prev,
+    );
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -123,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         updateUserProfileStatus,
+        updateUserName,
       }}
     >
       {children}
@@ -135,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error('useAuth must be used inside <AuthProvider>');
+    throw new Error("useAuth must be used inside <AuthProvider>");
   }
   return ctx;
 }

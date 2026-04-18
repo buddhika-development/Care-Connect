@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/axios';
+import { apiClient } from "@/lib/axios";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,12 +27,12 @@ export interface InitiatePaymentResponse {
 }
 
 export type PaymentStatusValue =
-  | 'pending'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'chargedback'
-  | 'unknown';
+  | "pending"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "chargedback"
+  | "unknown";
 
 export interface PaymentStatus {
   appointmentId: string;
@@ -58,12 +58,12 @@ export async function initiatePayment(data: {
   patientEmail: string;
   patientPhone?: string;
 }): Promise<InitiatePaymentResponse> {
-  const { data: res } = await apiClient.post('/api/payments/initiate', {
+  const { data: res } = await apiClient.post("/api/payments/initiate", {
     appointmentId: data.appointmentId,
     amount: data.amount,
     patientName: data.patientName,
     patientEmail: data.patientEmail,
-    patientPhone: data.patientPhone ?? '',
+    patientPhone: data.patientPhone ?? "",
   });
   return res.data as InitiatePaymentResponse;
 }
@@ -72,7 +72,9 @@ export async function initiatePayment(data: {
  * Poll the payment status for a given appointment.
  * Called by /payment/return page after PayHere redirects back.
  */
-export async function getPaymentStatus(appointmentId: string): Promise<PaymentStatus> {
+export async function getPaymentStatus(
+  appointmentId: string,
+): Promise<PaymentStatus> {
   const { data } = await apiClient.get(`/api/payments/status/${appointmentId}`);
   return data.data as PaymentStatus;
 }
@@ -89,24 +91,24 @@ export async function getPaymentStatus(appointmentId: string): Promise<PaymentSt
  */
 export function submitPayhereForm(
   checkoutData: PayhereCheckoutData,
-  paymentUrl: string
+  paymentUrl: string,
 ): void {
-  if (typeof document === 'undefined') return;
+  if (typeof document === "undefined") return;
 
   // Remove any stale form from a previous attempt
-  const existingForm = document.getElementById('payhere-checkout-form');
+  const existingForm = document.getElementById("payhere-checkout-form");
   if (existingForm) existingForm.remove();
 
-  const form = document.createElement('form');
-  form.id = 'payhere-checkout-form';
-  form.method = 'POST';
+  const form = document.createElement("form");
+  form.id = "payhere-checkout-form";
+  form.method = "POST";
   form.action = paymentUrl;
 
   Object.entries(checkoutData).forEach(([key, value]) => {
-    const input = document.createElement('input');
-    input.type = 'hidden';
+    const input = document.createElement("input");
+    input.type = "hidden";
     input.name = key;
-    input.value = String(value ?? '');
+    input.value = String(value ?? "");
     form.appendChild(input);
   });
 
@@ -119,28 +121,48 @@ export function submitPayhereForm(
 export interface AdminPayment {
   id: string;
   appointmentId: string;
+  patientId: string;
   patientName: string;
-  doctorName: string;
-  date: string;
   amount: number;
   currency: string;
-  status: 'success' | 'failed' | 'refunded' | 'pending';
+  status:
+    | "pending"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "refunded"
+    | "chargedback"
+    | "unknown";
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface PaymentSummary {
-  totalRevenue: number;
-  successfulPayments: number;
-  failedPayments: number;
+  totalPayments: number;
+  totalAmount: number;
+  completedPayments: number;
+  pendingPayments: number;
   refundedPayments: number;
+  failedPayments: number;
+  cancelledPayments: number;
 }
 
 export async function getPayments(): Promise<AdminPayment[]> {
-  // TODO: replace with GET /api/payments (admin)
-  return [];
+  const { data } = await apiClient.get("/api/payments/admin/all");
+  return data.data ?? [];
 }
 
 export async function getPaymentSummary(): Promise<PaymentSummary> {
-  // TODO: replace with GET /api/payments/summary (admin)
-  return { totalRevenue: 0, successfulPayments: 0, failedPayments: 0, refundedPayments: 0 };
+  const { data } = await apiClient.get("/api/payments/admin/summary");
+  return (
+    data.data ?? {
+      totalPayments: 0,
+      totalAmount: 0,
+      completedPayments: 0,
+      pendingPayments: 0,
+      refundedPayments: 0,
+      failedPayments: 0,
+      cancelledPayments: 0,
+    }
+  );
 }

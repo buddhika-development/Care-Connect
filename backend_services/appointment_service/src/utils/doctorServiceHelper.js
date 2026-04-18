@@ -8,6 +8,26 @@ export const updateSlotBookingStatus = async (slotId, isBooked) => {
     DOCTOR_SERVICE_URL,
     `/api/doctors/availability/slots/${slotId}/book-status`,
     serviceNames.APPOINTMENT_SERVICE,
-    { is_booked: isBooked }
+    { is_booked: isBooked },
   );
+};
+
+export const getSlotDetailsById = async (slotId) => {
+  const response = await httpClient.get(
+    DOCTOR_SERVICE_URL,
+    `/api/doctors/availability/internal/slots/${slotId}`,
+    serviceNames.APPOINTMENT_SERVICE,
+  );
+
+  return response.data;
+};
+
+export const getAllDoctorsWithAvailability = async () => {
+  const response = await httpClient.get(
+    DOCTOR_SERVICE_URL,
+    "/api/doctors/profile/all",
+    serviceNames.APPOINTMENT_SERVICE,
+  );
+
+  return response.data || [];
 };

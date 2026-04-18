@@ -1,21 +1,27 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getPatientProfile, savePatientProfile, getPrescriptions,
-  getMedicalDocuments, getRecentActivity,
-} from '@/services/patientService';
-import { useAuth } from '@/context/AuthContext';
+  getPatientProfile,
+  savePatientProfile,
+  getPrescriptions,
+  getMedicalDocuments,
+  getRecentActivity,
+} from "@/services/patientService";
+import { useAuth } from "@/context/AuthContext";
 
 export const patientKeys = {
-  profile: (userId: string) => ['patient', 'profile', userId] as const,
-  profileById: (userId: string) => ['patient', 'profile-by-id', userId] as const,
-  prescriptions: (patientId: string) => ['patient', 'prescriptions', patientId] as const,
-  documents: (patientId: string) => ['patient', 'documents', patientId] as const,
-  activity: (patientId: string) => ['patient', 'activity', patientId] as const,
+  profile: (userId: string) => ["patient", "profile", userId] as const,
+  profileById: (userId: string) =>
+    ["patient", "profile-by-id", userId] as const,
+  prescriptions: (patientId: string) =>
+    ["patient", "prescriptions", patientId] as const,
+  documents: (patientId: string) =>
+    ["patient", "documents", patientId] as const,
+  activity: (patientId: string) => ["patient", "activity", patientId] as const,
 };
 
 export function usePatientProfile() {
   const { user } = useAuth();
-  const userId = user?.id ?? '';
+  const userId = user?.id ?? "";
   return useQuery({
     queryKey: patientKeys.profile(userId),
     queryFn: () => getPatientProfile(userId),
@@ -33,20 +39,21 @@ export function usePatientProfileById(userId: string) {
 
 export function useUpdatePatientProfile() {
   const qc = useQueryClient();
-  const { user, updateUserProfileStatus } = useAuth();
-  const userId = user?.id ?? '';
+  const { user, updateUserProfileStatus, updateUserName } = useAuth();
+  const userId = user?.id ?? "";
   return useMutation({
     mutationFn: savePatientProfile,
-    onSuccess: () => {
+    onSuccess: (profile) => {
       qc.invalidateQueries({ queryKey: patientKeys.profile(userId) });
       updateUserProfileStatus(true);
+      updateUserName(profile.firstName, profile.lastName);
     },
   });
 }
 
 export function usePrescriptions() {
   const { user } = useAuth();
-  const userId = user?.id ?? '';
+  const userId = user?.id ?? "";
   return useQuery({
     queryKey: patientKeys.prescriptions(userId),
     queryFn: () => getPrescriptions(userId),
@@ -58,7 +65,7 @@ export function usePrescriptions() {
 
 export function useMedicalDocuments() {
   const { user } = useAuth();
-  const userId = user?.id ?? '';
+  const userId = user?.id ?? "";
   return useQuery({
     queryKey: patientKeys.documents(userId),
     queryFn: () => getMedicalDocuments(userId),
@@ -70,7 +77,7 @@ export function useMedicalDocuments() {
 
 export function useRecentActivity() {
   const { user } = useAuth();
-  const userId = user?.id ?? '';
+  const userId = user?.id ?? "";
   return useQuery({
     queryKey: patientKeys.activity(userId),
     queryFn: () => getRecentActivity(userId),
@@ -79,4 +86,3 @@ export function useRecentActivity() {
     gcTime: 1000 * 60 * 15,
   });
 }
-

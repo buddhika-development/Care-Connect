@@ -2,6 +2,10 @@ import express from "express";
 import { InitiatePaymentController } from "../controllers/initiatePayment.controller.js";
 import { WebhookHandlerController } from "../controllers/webhookHandler.controller.js";
 import { GetPaymentStatusController } from "../controllers/getPaymentStatus.controller.js";
+import {
+  GetAdminPaymentsController,
+  GetAdminPaymentSummaryController,
+} from "../controllers/adminPayments.controller.js";
 import extractUser from "../middleware/extractUser.middleware.js";
 
 const router = express.Router();
@@ -17,5 +21,9 @@ router.post("/webhook", WebhookHandlerController);
 
 // Check payment status — patient, doctor or admin can call this
 router.get("/status/:appointmentId", extractUser, GetPaymentStatusController);
+
+// Admin payment management
+router.get("/admin/all", extractUser, GetAdminPaymentsController);
+router.get("/admin/summary", extractUser, GetAdminPaymentSummaryController);
 
 export default router;

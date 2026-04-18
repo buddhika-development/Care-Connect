@@ -106,6 +106,21 @@ const AppointmentController = {
       next(error);
     }
   },
+
+  async getAllAppointmentsForAdmin(req, res, next) {
+    try {
+      const appointments =
+        await AppointmentService.getAllAppointmentsForAdmin();
+
+      return res.status(200).json({
+        success: true,
+        message: "All appointments retrieved successfully.",
+        data: appointments,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
 
 export default AppointmentController;
