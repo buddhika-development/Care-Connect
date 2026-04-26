@@ -1,0 +1,224 @@
+networks:
+  careconnect-network:
+    driver: bridge
+
+services:
+  # ── API Gateway ───────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./backend_services/api_gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "5000:5000" # host:container — exposes to your browser
+    environment:
+      - PORT=5000
+      - NODE_ENV=development
+      - SERVICE_NAME=care-connect-api-gateway
+      - SALT_ROUNDS=10
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - PATIENT_SERVICE_URL=http://patient-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - TELEMEDICINE_SERVICE_URL=http://telemedicine-service:3006
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+    networks:
+      - careconnect-network
+    depends_on:
+      - patient-service
+      - doctor-service
+      - appointment-service
+      - notification-service
+      - payment-service
+      - telemedicine-service
+
+  # ── Patient Management Service ────────────────────────────────
+  patient-service:
+    build:
+      context: ./backend_services/patient_management_service
+      dockerfile: Dockerfile
+    container_name: patient-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - SERVICE_NAME=care-connect-patient-management-service
+      - API_GATEWAY_URL=http://api-gateway:5000
+      - PATIENT_SERVICE_URL=http://patient-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - TELEMEDICINE_SERVICE_URL=http://telemedicine-service:3006
+    networks:
+      - careconnect-network
+
+  # ── Doctor Management Service ─────────────────────────────────
+  doctor-service:
+    build:
+      context: ./backend_services/doctor_management_service
+      dockerfile: Dockerfile
+    container_name: doctor-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - SERVICE_NAME=care-connect-doctor-management-service
+      - API_GATEWAY_URL=http://api-gateway:5000
+      - PATIENT_SERVICE_URL=http://patient-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - TELEMEDICINE_SERVICE_URL=http://telemedicine-service:3006
+    networks:
+      - careconnect-network
+
+  # ── Appointment Service ───────────────────────────────────────
+  appointment-service:
+    build:
+      context: ./backend_services/appointment_service
+      dockerfile: Dockerfile
+    container_name: appointment-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - SERVICE_NAME=care-connect-appointment-service
+      - API_GATEWAY_URL=http://api-gateway:5000
+      - PATIENT_SERVICE_URL=http://patient-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - TELEMEDICINE_SERVICE_URL=http://telemedicine-service:3006
+    networks:
+      - careconnect-network
+
+  # ── Notification Service ──────────────────────────────────────
+  notification-service:
+    build:
+      context: ./backend_services/notification_service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - SERVICE_NAME=care-connect-notification-service
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - API_GATEWAY_URL=http://api-gateway:5000
+      - PATIENT_SERVICE_URL=http://patient-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - TELEMEDICINE_SERVICE_URL=http://telemedicine-service:3006
+    networks:
+      - careconnect-network
+
+  # ── Payment Service ───────────────────────────────────────────
+  payment-service:
+    build:
+      context: ./backend_services/payment_service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - SERVICE_NAME=care-connect-payment-service
+      - PAYHERE_MERCHANT_ID=${PAYHERE_MERCHANT_ID}
+      - PAYHERE_MERCHANT_SECRET=${PAYHERE_MERCHANT_SECRET}
+      - PAYHERE_BASE_URL=${PAYHERE_BASE_URL}
+      - NOTIFY_URL=${NOTIFY_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - API_GATEWAY_URL=http://api-gateway:5000
+      - PATIENT_SERVICE_URL=http://patient-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - TELEMEDICINE_SERVICE_URL=http://telemedicine-service:3006
+    networks:
+      - careconnect-network
+
+  # ── Telemedicine Service ──────────────────────────────────────
+  telemedicine-service:
+    build:
+      context: ./backend_services/telemedicine_service
+      dockerfile: Dockerfile
+    container_name: telemedicine-service
+    ports:
+      - "3006:3006"
+    environment:
+      - PORT=3006
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - INTERNAL_SECRET=${INTERNAL_SECRET}
+      - SERVICE_NAME=care-connect-telemedicine-service
+      - JITSI_BASE_URL=${JITSI_BASE_URL}
+      - JITSI_APP_ID=${JITSI_APP_ID}
+      - JITSI_KID=${JITSI_KID}
+      - JITSI_PRIVATE_KEY=${JITSI_PRIVATE_KEY}
+      - API_GATEWAY_URL=http://api-gateway:5000
+      - PATIENT_SERVICE_URL=http://patient-service:3001
+      - DOCTOR_SERVICE_URL=http://doctor-service:3002
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - TELEMEDICINE_SERVICE_URL=http://telemedicine-service:3006
+    networks:
+      - careconnect-network
+
+  # ── Frontend (Next.js) ────────────────────────────────────────
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
+    networks:
+      - careconnect-network
+    depends_on:
+      - api-gateway
